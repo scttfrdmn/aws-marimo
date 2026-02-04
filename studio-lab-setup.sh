@@ -99,18 +99,18 @@ cat > ~/start-marimo.sh << 'EOFSTART'
 
 # Auto-update from GitHub (if repo exists)
 if [ -d ~/aws-marimo ]; then
-    echo "🔄 Checking for updates from GitHub..."
+    echo "🔄 Checking for repository updates..."
     cd ~/aws-marimo
     git fetch origin main --quiet 2>/dev/null || true
     LOCAL=$(git rev-parse HEAD 2>/dev/null)
     REMOTE=$(git rev-parse origin/main 2>/dev/null)
 
     if [ "$LOCAL" != "$REMOTE" ] && [ -n "$REMOTE" ]; then
-        echo "📦 Updates available! Pulling latest changes..."
+        echo "📦 Repository updates available! Pulling latest changes..."
         git pull origin main
         echo "✅ Repository updated!"
     else
-        echo "✅ Already up to date"
+        echo "✅ Repository up to date"
     fi
     cd - > /dev/null
     echo ""
@@ -122,14 +122,35 @@ conda activate marimo-env
 
 # Check if marimo is available
 if ! command -v marimo &> /dev/null; then
-    echo "❌ marimo not found. Run ~/studio-lab-setup.sh first"
+    echo "❌ marimo not found. Run ~/aws-marimo/studio-lab-setup.sh first"
     exit 1
 fi
 
-echo "🚀 Starting marimo..."
+# Check for marimo updates
+CURRENT_VERSION=$(marimo --version 2>&1)
+echo "📋 Current marimo version: $CURRENT_VERSION"
+
+# Quick check for updates (non-blocking)
+LATEST_VERSION=$(pip index versions marimo 2>/dev/null | grep "marimo (" | head -1 | sed 's/marimo (\(.*\))/\1/' || echo "")
+if [ -n "$LATEST_VERSION" ] && [ "$CURRENT_VERSION" != "$LATEST_VERSION" ]; then
+    echo "⬆️  New version available: $LATEST_VERSION"
+    echo "   To upgrade: pip install --upgrade marimo"
+    echo ""
+fi
+
 echo ""
-echo "Access marimo at: /proxy/2718/"
-echo "Or click the URL shown below"
+echo "================================================"
+echo "  🚀 Starting marimo on SageMaker Studio Lab"
+echo "================================================"
+echo ""
+echo "IMPORTANT: Copy your browser's address bar URL"
+echo "Replace the path after the domain with:"
+echo "  /studiolab/default/jupyter/proxy/2718/"
+echo ""
+echo "Full example URL format:"
+echo "  https://xxxxx.studio.us-east-1.sagemaker.aws/studiolab/default/jupyter/proxy/2718/"
+echo ""
+echo "================================================"
 echo ""
 
 # Start marimo
@@ -139,6 +160,49 @@ EOFSTART
 
 chmod +x ~/start-marimo.sh
 echo "✅ Start script created: ~/start-marimo.sh"
+
+# Create upgrade helper script
+echo ""
+echo "📝 Creating upgrade helper script..."
+cat > ~/upgrade-marimo.sh << 'EOFUPGRADE'
+#!/bin/bash
+# Upgrade marimo and sync repository
+
+echo "================================================"
+echo "  marimo Upgrade Script"
+echo "================================================"
+echo ""
+
+# Activate conda environment
+eval "$(conda shell.bash hook)"
+conda activate marimo-env
+
+# Update repository
+if [ -d ~/aws-marimo ]; then
+    echo "📦 Updating repository from GitHub..."
+    cd ~/aws-marimo
+    git pull origin main
+    cd - > /dev/null
+    echo "✅ Repository updated"
+    echo ""
+fi
+
+# Upgrade marimo
+echo "⬆️  Upgrading marimo..."
+CURRENT=$(marimo --version 2>&1)
+echo "   Current: $CURRENT"
+
+pip install --upgrade marimo
+
+NEW=$(marimo --version 2>&1)
+echo "   New: $NEW"
+echo ""
+echo "✅ Upgrade complete!"
+echo ""
+EOFUPGRADE
+
+chmod +x ~/upgrade-marimo.sh
+echo "✅ Upgrade script created: ~/upgrade-marimo.sh"
 
 # Step 6: Create auto-activate for bashrc
 echo ""
@@ -324,8 +388,12 @@ echo "Configuration files created:"
 echo "  - $CONDA_ENV_FILE"
 echo "  - $REQUIREMENTS_FILE"
 echo "  - ~/start-marimo.sh"
+echo "  - ~/upgrade-marimo.sh"
 echo "  - ~/marimo-demo.py"
 echo ""
 echo "The marimo-env environment will auto-activate in new terminal sessions."
+echo ""
+echo "To upgrade marimo in the future:"
+echo "  ~/upgrade-marimo.sh"
 echo ""
 echo "🚀 Happy coding!"
