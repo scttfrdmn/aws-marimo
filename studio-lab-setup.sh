@@ -1,7 +1,7 @@
 #!/bin/bash
 # SageMaker Studio Lab - marimo Setup Script
-# This script combines conda environment + smart installation checking
-# Run once to set everything up, then use the start script for future sessions
+# This script is IDEMPOTENT - safe to run multiple times
+# Installs jupyter-server-proxy 3.2.2 (4.x breaks SageMaker Studio)
 
 set -e  # Exit on error
 
@@ -14,11 +14,11 @@ echo ""
 ENV_NAME="marimo-env"
 CONDA_ENV_FILE=~/marimo-environment.yml
 REQUIREMENTS_FILE=~/marimo-requirements.txt
+PROXY_VERSION="3.2.2"  # Version 4.x breaks SageMaker Studio
 
-# Step 1: Create environment.yml if it doesn't exist
-if [ ! -f "$CONDA_ENV_FILE" ]; then
-    echo "📝 Creating conda environment configuration..."
-    cat > "$CONDA_ENV_FILE" << 'EOF'
+# Step 1: Create environment.yml (always recreate to ensure correct versions)
+echo "📝 Creating conda environment configuration..."
+cat > "$CONDA_ENV_FILE" << EOF
 name: marimo-env
 channels:
   - conda-forge
@@ -27,25 +27,23 @@ dependencies:
   - python=3.9
   - pip
   - pip:
-    - marimo
-    - jupyter-server-proxy
-    - pandas
-    - numpy
-    - boto3
-    - plotly
-    - scikit-learn
+    - marimo>=0.17.6
+    - jupyter-server-proxy==$PROXY_VERSION
+    - pandas>=2.0.0
+    - numpy>=1.24.0
+    - boto3>=1.26.0
+    - plotly>=5.14.0
+    - scikit-learn>=1.3.0
 EOF
-    echo "✅ Environment file created: $CONDA_ENV_FILE"
-else
-    echo "✅ Environment file already exists: $CONDA_ENV_FILE"
-fi
+echo "✅ Environment file created: $CONDA_ENV_FILE"
+echo "   Note: Using jupyter-server-proxy $PROXY_VERSION (4.x breaks SageMaker)"
 
 # Step 2: Create requirements.txt backup (for pip-only installs)
 echo ""
-echo "📝 Creating requirements.txt backup..."
-cat > "$REQUIREMENTS_FILE" << 'EOF'
+echo "📝 Creating requirements.txt..."
+cat > "$REQUIREMENTS_FILE" << EOF
 marimo>=0.17.6
-jupyter-server-proxy>=4.0.0
+jupyter-server-proxy==$PROXY_VERSION
 pandas>=2.0.0
 numpy>=1.24.0
 boto3>=1.26.0
@@ -53,6 +51,7 @@ plotly>=5.14.0
 scikit-learn>=1.3.0
 EOF
 echo "✅ Requirements file created: $REQUIREMENTS_FILE"
+echo "   Note: Using jupyter-server-proxy $PROXY_VERSION (4.x breaks SageMaker)"
 
 # Step 3: Check if conda environment exists
 echo ""
@@ -81,6 +80,23 @@ if ! command -v marimo &> /dev/null; then
     echo "✅ Packages installed!"
 else
     echo "✅ marimo is already installed"
+fi
+
+# CRITICAL: Check and fix jupyter-server-proxy version (4.x breaks SageMaker)
+echo ""
+echo "🔍 Checking jupyter-server-proxy version..."
+CURRENT_PROXY_VERSION=$(pip show jupyter-server-proxy 2>/dev/null | grep "Version:" | cut -d' ' -f2 || echo "not installed")
+
+if [[ "$CURRENT_PROXY_VERSION" == "not installed" ]]; then
+    echo "📦 Installing jupyter-server-proxy $PROXY_VERSION..."
+    pip install jupyter-server-proxy==$PROXY_VERSION
+elif [[ "$CURRENT_PROXY_VERSION" != "$PROXY_VERSION" ]]; then
+    echo "⚠️  Found version $CURRENT_PROXY_VERSION (incompatible with SageMaker)"
+    echo "📦 Downgrading to version $PROXY_VERSION..."
+    pip install jupyter-server-proxy==$PROXY_VERSION --force-reinstall
+    echo "✅ jupyter-server-proxy fixed!"
+else
+    echo "✅ jupyter-server-proxy $PROXY_VERSION already installed"
 fi
 
 # Enable jupyter-server-proxy extension
@@ -380,6 +396,18 @@ echo "================================================"
 echo "  ✅ Setup Complete!"
 echo "================================================"
 echo ""
+
+# Check if we changed proxy version (requires Jupyter restart)
+if [[ "$CURRENT_PROXY_VERSION" != "not installed" ]] && [[ "$CURRENT_PROXY_VERSION" != "$PROXY_VERSION" ]]; then
+    echo "⚠️  IMPORTANT: jupyter-server-proxy was updated!"
+    echo ""
+    echo "You MUST restart Jupyter for the change to take effect:"
+    echo "  1. In JupyterLab: File → Shut Down"
+    echo "  2. In Studio Lab: Stop Runtime → Start Runtime"
+    echo "  3. Open Project again"
+    echo ""
+fi
+
 echo "To start marimo in future sessions, just run:"
 echo "  ~/start-marimo.sh"
 echo ""
