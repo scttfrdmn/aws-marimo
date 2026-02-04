@@ -143,19 +143,25 @@ echo "================================================"
 echo "  🚀 Starting marimo on SageMaker Studio Lab"
 echo "================================================"
 echo ""
-echo "IMPORTANT: Copy your browser's address bar URL"
-echo "Replace the path after the domain with:"
-echo "  /studiolab/default/jupyter/proxy/2718/"
+echo "📍 Access marimo in your browser:"
 echo ""
-echo "Full example URL format:"
-echo "  https://xxxxx.studio.us-east-1.sagemaker.aws/studiolab/default/jupyter/proxy/2718/"
+echo "Copy your JupyterLab URL and modify the path:"
+echo "  FROM: /studiolab/default/jupyter/lab"
+echo "    TO: /studiolab/default/jupyter/proxy/2718/"
+echo ""
+echo "Example:"
+echo "  https://xxxxx.studio.us-east-2.sagemaker.aws/studiolab/default/jupyter/proxy/2718/"
+echo ""
+echo "The marimo interface will open with 'Create a new notebook' screen."
 echo ""
 echo "================================================"
 echo ""
 
 # Start marimo
-# Use default port 2718 (Studio Lab's proxy default)
-marimo edit --host 0.0.0.0 --port 2718
+# Use default port 2718 with Studio Lab-compatible flags
+# --no-token: Jupyter already handles authentication
+# --headless: Proxy-friendly mode for Studio Lab
+marimo edit --host 0.0.0.0 --port 2718 --no-token --headless
 EOFSTART
 
 chmod +x ~/start-marimo.sh
