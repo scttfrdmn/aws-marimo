@@ -28,6 +28,31 @@ curl -fsSL https://raw.githubusercontent.com/scttfrdmn/aws-marimo/main/bootstrap
 
 ---
 
+## ⚠️ Critical: SageMaker Studio Lab Compatibility
+
+**If you see "403 Forbidden" or "Connecting, Health Unknown" errors:**
+
+The issue is likely `jupyter-server-proxy` version 4.x, which breaks SageMaker Studio Lab. Our scripts now automatically install the correct version (3.2.2).
+
+### Quick Fix for Existing Installations:
+
+```bash
+cd ~/aws-marimo
+git pull origin main
+bash fix-proxy-version.sh
+```
+
+Then **restart Jupyter**: File → Shut Down → Stop Runtime → Start Runtime → Open Project
+
+**Why this happens:** Version 4.0.0+ of jupyter-server-proxy has breaking changes that cause WebSocket connection failures in SageMaker environments. [See issue #404](https://github.com/jupyterhub/jupyter-server-proxy/issues/404)
+
+**Our scripts now:**
+- ✅ Install version 3.2.2 automatically (tested and working)
+- ✅ Detect and fix wrong versions on re-run
+- ✅ Are fully idempotent (safe to run multiple times)
+
+---
+
 ## 🚀 Quick Start (5 Minutes)
 
 **Want to try marimo right now?**
@@ -73,13 +98,14 @@ This repository provides:
 3. Try the sample notebook
 4. Total time: ~10 minutes
 
-### Path 2: Manual Setup on Studio
+### Path 2: Manual Setup on Studio/Studio Lab
 **Perfect for**: Individual users, existing Studio environment
 
-1. Open SageMaker Studio
-2. Run `pip install marimo jupyter-server-proxy`
-3. Start with `marimo edit`
-4. See [QUICKSTART.md](QUICKSTART.md) for details
+1. Open SageMaker Studio or Studio Lab
+2. Run `pip install marimo jupyter-server-proxy==3.2.2`
+3. **Important:** Use version 3.2.2 (version 4.x breaks SageMaker)
+4. Start with `marimo edit --host 0.0.0.0 --port 2718 --no-token --headless`
+5. See [QUICKSTART.md](QUICKSTART.md) for details
 
 ### Path 3: Production Deployment
 **Perfect for**: Teams, production workloads, persistent setup
