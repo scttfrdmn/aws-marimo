@@ -140,7 +140,7 @@ Traditional Jupyter notebooks have well-known issues:
 │  │  ┌─────────────────────────┐  │  │
 │  │  │ jupyter-server-proxy    │  │  │
 │  │  │         ↓                │  │  │
-│  │  │ marimo server (:8888)   │  │  │
+│  │  │ marimo server (:2718)   │  │  │
 │  │  └─────────────────────────┘  │  │
 │  └───────────────────────────────┘  │
 └─────────────────────────────────────┘
@@ -160,7 +160,6 @@ Traditional Jupyter notebooks have well-known issues:
 ├── LICENSE                     # MIT License
 ├── VERSION                     # Semantic version (0.1.0)
 ├── blog-post.md                # Full blog post (~2000 words)
-├── chat.md                     # Research notes
 ├── sagemaker_ml_demo.py        # Complete demo notebook
 ├── bootstrap.sh                # One-command setup script
 ├── studio-lab-setup.sh         # Setup script with conda env
@@ -267,14 +266,6 @@ cdk destroy
 **Manual:**
 Just stop using it - no infrastructure to clean up!
 
-## 📖 Documentation
-
-- **Quick Start**: [QUICKSTART.md](QUICKSTART.md) - Get running in 5 minutes
-- **Blog Post**: [blog-post.md](blog-post.md) - Comprehensive guide (~2000 words)
-- **Demo Notebook**: [sagemaker_ml_demo.py](sagemaker_ml_demo.py) - Complete working example
-- **marimo docs**: https://docs.marimo.io
-- **SageMaker docs**: https://docs.aws.amazon.com/sagemaker/
-
 ## 🤝 Use Cases
 
 marimo on SageMaker is perfect for:
@@ -349,17 +340,9 @@ table = mo.ui.table(dataframe)
 plot = mo.ui.plotly(figure)
 ```
 
-## 📝 Contributing
-
-Found an issue or have an improvement? Contributions welcome!
-
-1. Fork the repository
-2. Create a feature branch
-3. Submit a pull request
-
 ## 📄 License
 
-This repository: Apache 2.0 License
+This repository: MIT License
 
 marimo: Apache 2.0 License
 
