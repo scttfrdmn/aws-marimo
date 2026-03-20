@@ -5,7 +5,7 @@ Try this to see reactive programming in action!
 
 import marimo
 
-__generated_with = "0.21.1"
+__generated_with = "0.0.0"  # Dynamically set by studio-lab-setup.sh
 app = marimo.App(width="medium")
 
 

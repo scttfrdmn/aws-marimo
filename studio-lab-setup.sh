@@ -27,7 +27,7 @@ dependencies:
   - python=3.9
   - pip
   - pip:
-    - marimo>=0.17.6
+    - marimo
     - jupyter-server-proxy==$PROXY_VERSION
     - pandas>=2.0.0
     - numpy>=1.24.0
@@ -42,7 +42,7 @@ echo "   Note: Using jupyter-server-proxy $PROXY_VERSION (4.x breaks SageMaker)"
 echo ""
 echo "📝 Creating requirements.txt..."
 cat > "$REQUIREMENTS_FILE" << EOF
-marimo>=0.17.6
+marimo
 jupyter-server-proxy==$PROXY_VERSION
 pandas>=2.0.0
 numpy>=1.24.0
@@ -173,11 +173,18 @@ echo ""
 echo "================================================"
 echo ""
 
-# Start marimo
+# Start marimo in the background so the terminal remains usable
 # Use default port 2718 with Studio Lab-compatible flags
 # --no-token: Jupyter already handles authentication
 # --headless: Proxy-friendly mode for Studio Lab
-marimo edit --host 0.0.0.0 --port 2718 --no-token --headless
+marimo edit --host 0.0.0.0 --port 2718 --no-token --headless &
+MARIMO_PID=$!
+echo "marimo started (PID: $MARIMO_PID)"
+echo "To stop marimo: kill $MARIMO_PID"
+echo ""
+
+# Wait for marimo to exit (optional - press Ctrl+C to return to terminal)
+wait $MARIMO_PID 2>/dev/null
 EOFSTART
 
 chmod +x ~/start-marimo.sh
@@ -254,7 +261,7 @@ Try this to see reactive programming in action!
 
 import marimo
 
-__generated_with = "0.21.1"
+__generated_with = "MARIMO_VERSION_PLACEHOLDER"
 app = marimo.App(width="medium")
 
 
@@ -388,7 +395,21 @@ def __(mo):
 if __name__ == "__main__":
     app.run()
 EOFDEMO
-echo "✅ Demo notebook created: ~/marimo-demo.py"
+
+# Set __generated_with to the actually installed marimo version
+MARIMO_VERSION=$(marimo --version 2>&1 || echo "0.0.0")
+sed -i "s/MARIMO_VERSION_PLACEHOLDER/$MARIMO_VERSION/" ~/marimo-demo.py
+echo "✅ Demo notebook created: ~/marimo-demo.py (marimo $MARIMO_VERSION)"
+
+# Also update __generated_with in any repo notebooks that were cloned
+if [ -d ~/aws-marimo ]; then
+    for nb in ~/aws-marimo/marimo-demo.py ~/aws-marimo/sagemaker_ml_demo.py; do
+        if [ -f "$nb" ]; then
+            sed -i "s/__generated_with = \"[^\"]*\"/__generated_with = \"$MARIMO_VERSION\"/" "$nb"
+        fi
+    done
+    echo "✅ Updated repo notebooks to marimo $MARIMO_VERSION"
+fi
 
 # Step 8: Summary
 echo ""

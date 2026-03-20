@@ -76,6 +76,13 @@ echo ""
 echo "================================================"
 echo ""
 
-# Start marimo
+# Start marimo in the background so the terminal remains usable
 # Use default port 2718 (Studio Lab's proxy default)
-marimo edit --host 0.0.0.0 --port 2718 --no-token --headless
+marimo edit --host 0.0.0.0 --port 2718 --no-token --headless &
+MARIMO_PID=$!
+echo "marimo started (PID: $MARIMO_PID)"
+echo "To stop marimo: kill $MARIMO_PID"
+echo ""
+
+# Wait for marimo to exit (optional - press Ctrl+C to return to terminal)
+wait $MARIMO_PID 2>/dev/null

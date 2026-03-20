@@ -14,7 +14,7 @@ Or as an app: marimo run sagemaker_ml_demo.py
 
 import marimo
 
-__generated_with = "0.21.1"
+__generated_with = "0.0.0"  # Dynamically set by studio-lab-setup.sh
 app = marimo.App(width="full")
 
 
