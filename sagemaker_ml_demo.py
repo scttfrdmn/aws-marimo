@@ -14,7 +14,7 @@ Or as an app: marimo run sagemaker_ml_demo.py
 
 import marimo
 
-__generated_with = "0.17.6"
+__generated_with = "0.21.1"
 app = marimo.App(width="full")
 
 
@@ -28,7 +28,7 @@ def _():
     import plotly.graph_objects as go
     from sklearn.model_selection import train_test_split
     from sklearn.ensemble import RandomForestClassifier
-    from sklearn.metrics import classification_report, confusion_matrix
+    from sklearn.metrics import confusion_matrix
     from datetime import datetime, timedelta
     import json
     return (

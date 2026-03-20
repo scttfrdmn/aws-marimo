@@ -5,7 +5,7 @@ Run [marimo](https://marimo.io), the reactive Python notebook, on Amazon SageMak
 [![Setup on Studio Lab](https://img.shields.io/badge/Setup_on-SageMaker_Studio_Lab-orange?logo=amazon-aws&logoColor=white)](BOOTSTRAP.md)
 [![5-Minute Setup](https://img.shields.io/badge/⚡_5--Minute-Setup_Guide-brightgreen)](QUICKSTART.md)
 [![Python](https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white)](https://www.python.org)
-[![marimo](https://img.shields.io/badge/marimo-0.17.6+-green?logo=python)](https://marimo.io)
+[![marimo](https://img.shields.io/badge/marimo-0.21.1+-green?logo=python)](https://marimo.io)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/version-0.1.0-blue)](VERSION)
 
@@ -32,7 +32,7 @@ curl -fsSL https://raw.githubusercontent.com/scttfrdmn/aws-marimo/main/bootstrap
 
 **If you see "403 Forbidden" or "Connecting, Health Unknown" errors:**
 
-The issue is likely `jupyter-server-proxy` version 4.x, which breaks SageMaker Studio Lab. Our scripts now automatically install the correct version (3.2.2).
+The issue is likely `jupyter-server-proxy` version 4.x, which breaks SageMaker Studio Lab. Our scripts now automatically install the correct version (3.2.4).
 
 ### Quick Fix for Existing Installations:
 
@@ -47,7 +47,7 @@ Then **restart Jupyter**: File → Shut Down → Stop Runtime → Start Runtime 
 **Why this happens:** Version 4.0.0+ of jupyter-server-proxy has breaking changes that cause WebSocket connection failures in SageMaker environments. [See issue #404](https://github.com/jupyterhub/jupyter-server-proxy/issues/404)
 
 **Our scripts now:**
-- ✅ Install version 3.2.2 automatically (tested and working)
+- ✅ Install version 3.2.4 automatically (tested and working)
 - ✅ Detect and fix wrong versions on re-run
 - ✅ Are fully idempotent (safe to run multiple times)
 
@@ -102,8 +102,8 @@ This repository provides:
 **Perfect for**: Individual users, existing Studio environment
 
 1. Open SageMaker Studio or Studio Lab
-2. Run `pip install marimo jupyter-server-proxy==3.2.2`
-3. **Important:** Use version 3.2.2 (version 4.x breaks SageMaker)
+2. Run `pip install marimo jupyter-server-proxy==3.2.4`
+3. **Important:** Use version 3.2.4 (version 4.x breaks SageMaker)
 4. Start with `marimo edit --host 0.0.0.0 --port 2718 --no-token --headless`
 5. See [QUICKSTART.md](QUICKSTART.md) for details
 

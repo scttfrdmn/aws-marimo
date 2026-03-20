@@ -1,6 +1,6 @@
 #!/bin/bash
 # Fix jupyter-server-proxy version for SageMaker Studio Lab compatibility
-# Version 4.x breaks SageMaker - this downgrades to working version 3.2.2
+# Version 4.x breaks SageMaker - this installs the working version 3.2.4
 
 set -e
 
@@ -9,7 +9,7 @@ echo "  Fix jupyter-server-proxy for SageMaker Studio Lab"
 echo "================================================"
 echo ""
 
-PROXY_VERSION="3.2.2"
+PROXY_VERSION="3.2.4"
 
 # Activate marimo environment
 eval "$(conda shell.bash hook)"
@@ -40,7 +40,7 @@ if [ -f ~/.jupyter/jupyter_server_config.py ]; then
 fi
 
 # Install correct version
-pip install jupyter-server-proxy==$PROXY_VERSION --force-reinstall --no-deps
+pip install jupyter-server-proxy==$PROXY_VERSION --force-reinstall
 
 # Verify
 NEW_VERSION=$(pip show jupyter-server-proxy 2>/dev/null | grep "Version:" | cut -d' ' -f2)

@@ -78,4 +78,4 @@ echo ""
 
 # Start marimo
 # Use default port 2718 (Studio Lab's proxy default)
-marimo edit --host 0.0.0.0 --port 2718
+marimo edit --host 0.0.0.0 --port 2718 --no-token --headless

@@ -5,7 +5,7 @@ Try this to see reactive programming in action!
 
 import marimo
 
-__generated_with = "0.19.7"
+__generated_with = "0.21.1"
 app = marimo.App(width="medium")
 
 

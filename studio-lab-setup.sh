@@ -1,7 +1,7 @@
 #!/bin/bash
 # SageMaker Studio Lab - marimo Setup Script
 # This script is IDEMPOTENT - safe to run multiple times
-# Installs jupyter-server-proxy 3.2.2 (4.x breaks SageMaker Studio)
+# Installs jupyter-server-proxy 3.2.4 (4.x breaks SageMaker Studio)
 
 set -e  # Exit on error
 
@@ -14,7 +14,7 @@ echo ""
 ENV_NAME="marimo-env"
 CONDA_ENV_FILE=~/marimo-environment.yml
 REQUIREMENTS_FILE=~/marimo-requirements.txt
-PROXY_VERSION="3.2.2"  # Version 4.x breaks SageMaker Studio
+PROXY_VERSION="3.2.4"  # Version 4.x breaks SageMaker Studio
 
 # Step 1: Create environment.yml (always recreate to ensure correct versions)
 echo "📝 Creating conda environment configuration..."
@@ -254,7 +254,7 @@ Try this to see reactive programming in action!
 
 import marimo
 
-__generated_with = "0.17.6"
+__generated_with = "0.21.1"
 app = marimo.App(width="medium")
 
 
