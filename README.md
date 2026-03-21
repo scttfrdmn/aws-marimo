@@ -16,7 +16,7 @@ Run [marimo](https://marimo.io), the reactive Python notebook, on Amazon SageMak
 For SageMaker Studio Lab (free, no AWS account required):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/scttfrdmn/aws-marimo/main/bootstrap.sh | bash
+curl -fsSL https://raw.githubusercontent.com/scttfrdmn/aws-marimo-sagemaker/main/bootstrap.sh | bash
 ```
 
 **Then start marimo:**
@@ -28,28 +28,28 @@ curl -fsSL https://raw.githubusercontent.com/scttfrdmn/aws-marimo/main/bootstrap
 
 ---
 
-## ⚠️ Critical: SageMaker Studio Lab Compatibility
+## ⚠️ Known Limitation: WebSocket on SageMaker Studio Lab
 
-**If you see "403 Forbidden" or "Connecting, Health Unknown" errors:**
+**marimo's home page loads but notebooks show blank cells or "connecting" status.**
 
-The issue is likely `jupyter-server-proxy` version 4.x, which breaks SageMaker Studio Lab. Our scripts now automatically install the correct version (3.2.4).
+This is a known limitation of SageMaker Studio Lab's gateway/ALB infrastructure. HTTP proxying through jupyter-server-proxy works correctly — you can browse marimo's file list — but WebSocket connections (which marimo requires for cell execution) are dropped by the SageMaker gateway on `/proxy/PORT/` paths. This affects all WebSocket-dependent proxied applications, not just marimo.
 
-### Quick Fix for Existing Installations:
+**What works:**
+- ✅ marimo home page / file browser via `/proxy/2718/`
+- ✅ HTTP API requests through the proxy
+- ✅ jupyter-server-proxy 4.4.0 (conda default) — no downgrade needed
 
+**What doesn't work (without the shim):**
+- ❌ Interactive notebook editing (requires WebSocket)
+- ❌ Cell execution and reactive updates (requires WebSocket)
+
+**Workaround included:** This repo uses [ws-sse-proxy](https://github.com/scttfrdmn/ws-sse-proxy) to translate WebSocket to SSE, making marimo fully functional on Studio Lab. See [WEBSOCKET-STATUS.md](WEBSOCKET-STATUS.md) for details, or just run:
 ```bash
-cd ~/aws-marimo
-git pull origin main
-bash fix-proxy-version.sh
+bash start-marimo-shim.sh
+# Then access at /proxy/2719/
 ```
 
-Then **restart Jupyter**: File → Shut Down → Stop Runtime → Start Runtime → Open Project
-
-**Why this happens:** Version 4.0.0+ of jupyter-server-proxy has breaking changes that cause WebSocket connection failures in SageMaker environments. [See issue #404](https://github.com/jupyterhub/jupyter-server-proxy/issues/404)
-
-**Our scripts now:**
-- ✅ Install version 3.2.4 automatically (tested and working)
-- ✅ Detect and fix wrong versions on re-run
-- ✅ Are fully idempotent (safe to run multiple times)
+**Tracking:** [marimo-jupyter-extension #8](https://github.com/marimo-team/marimo-jupyter-extension/issues/8) and [marimo #8060](https://github.com/marimo-team/marimo/issues/8060)
 
 ---
 
@@ -102,10 +102,10 @@ This repository provides:
 **Perfect for**: Individual users, existing Studio environment
 
 1. Open SageMaker Studio or Studio Lab
-2. Run `pip install marimo jupyter-server-proxy==3.2.4`
-3. **Important:** Use version 3.2.4 (version 4.x breaks SageMaker)
-4. Start with `marimo edit --host 0.0.0.0 --port 2718 --no-token --headless`
-5. See [QUICKSTART.md](QUICKSTART.md) for details
+2. Run `pip install marimo jupyter-server-proxy`
+3. Start with `marimo edit --host 0.0.0.0 --port 2718 --no-token --headless`
+4. See [QUICKSTART.md](QUICKSTART.md) for details
+5. **Note:** On Studio Lab, WebSocket connections are blocked by the gateway — see [known limitation](#-known-limitation-websocket-on-sagemaker-studio-lab)
 
 ### Path 3: Production Deployment
 **Perfect for**: Teams, production workloads, persistent setup
@@ -155,6 +155,7 @@ Traditional Jupyter notebooks have well-known issues:
 ├── BOOTSTRAP.md                # One-command bootstrap guide
 ├── STUDIO-LAB-SETUP.md         # Automated Studio Lab setup
 ├── BADGES.md                   # Badge options for READMEs
+├── WEBSOCKET-STATUS.md         # WebSocket proxy status & research
 ├── CONTRIBUTING.md             # Contribution guidelines
 ├── CHANGELOG.md                # Version history (Keep a Changelog)
 ├── LICENSE                     # MIT License
@@ -162,6 +163,7 @@ Traditional Jupyter notebooks have well-known issues:
 ├── blog-post.md                # Full blog post (~2000 words)
 ├── sagemaker_ml_demo.py        # Complete demo notebook
 ├── bootstrap.sh                # One-command setup script
+├── start-marimo-shim.sh        # Start marimo with WebSocket shim
 ├── studio-lab-setup.sh         # Setup script with conda env
 ├── terraform/                  # Terraform IaC (coming soon)
 ├── cdk/                        # AWS CDK IaC (coming soon)
@@ -365,6 +367,7 @@ marimo: Apache 2.0 License
 - **[Quick Start Guide](QUICKSTART.md)** - Get running in 5 minutes
 - **[Bootstrap Guide](BOOTSTRAP.md)** - One-command automated setup
 - **[Studio Lab Setup](STUDIO-LAB-SETUP.md)** - Persistent conda environment
+- **[WebSocket Status](WEBSOCKET-STATUS.md)** - WebSocket limitation details
 - **[Blog Post](blog-post.md)** - Complete guide (~2000 words)
 - **[Badge Options](BADGES.md)** - Add badges to your own projects
 - **[Contributing](CONTRIBUTING.md)** - How to contribute
@@ -393,7 +396,7 @@ See [CHANGELOG.md](CHANGELOG.md) for version history.
 
 **Ready to get started?**
 
-👉 One command: `curl -fsSL https://raw.githubusercontent.com/scttfrdmn/aws-marimo/main/bootstrap.sh | bash`
+👉 One command: `curl -fsSL https://raw.githubusercontent.com/scttfrdmn/aws-marimo-sagemaker/main/bootstrap.sh | bash`
 
 👉 Or manual: [QUICKSTART.md](QUICKSTART.md)
 
