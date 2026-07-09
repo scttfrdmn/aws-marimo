@@ -1,97 +1,138 @@
-# WebSocket Proxy Status on SageMaker Studio Lab
+# WebSocket Status: marimo on Amazon SageMaker Studio
 
 ## Summary
 
-marimo requires WebSocket connections for interactive notebook editing (cell execution, reactive updates, UI widgets). On SageMaker Studio Lab, WebSocket connections through the jupyter-server-proxy `/proxy/PORT/` path are dropped by the SageMaker gateway/ALB infrastructure.
+marimo requires a WebSocket connection for interactive notebook editing (cell
+execution, reactive updates, UI widgets). On Amazon SageMaker Studio, the
+marimo home page and file browser load through the JupyterLab proxy, but the
+WebSocket connection is **rejected with HTTP 403** and notebooks stay stuck in
+a "connecting" loop with blank cells.
 
-**HTTP proxying works. WebSocket proxying does not.**
+**HTTP proxying works. The marimo WebSocket handshake does not — and it fails
+at the handshake, not after connecting.** This repo ships a workaround
+([ws-sse-proxy](https://github.com/scttfrdmn/ws-sse-proxy)); see below.
 
-## What Works
+> Applies to full **SageMaker Studio** (the JupyterLab application / Spaces) and
+> **SageMaker Unified Studio**. It is *not* specific to the now-EOL Studio Lab.
 
-- marimo home page / file browser loads at `/proxy/2718/`
-- HTTP API requests are proxied correctly
-- jupyter-server-proxy extension loads and serves HTTP traffic
-- Internal WebSocket (localhost:8888 → localhost:2718) works fine
-- Jupyter's own WebSocket paths (terminals, kernels) work through the gateway
+## What works
 
-## What Doesn't Work
+- marimo home page / file browser through the JupyterLab proxy
+- HTTP API requests (`/health`, `/api/*`) through the proxy
+- jupyter-server-proxy serving HTTP traffic
+- marimo running fine when reached directly on localhost inside the space
 
-- WebSocket connections from browser → SageMaker gateway → jupyter-server-proxy → marimo
-- The WebSocket upgrade succeeds (OPEN state) but immediately closes with code 1006 (abnormal closure)
-- This prevents cell execution, reactive updates, and all interactive features
+## What doesn't work (without the shim)
 
-## Root Cause
+- The browser → SageMaker proxy → marimo WebSocket (`/ws`) handshake
+- Interactive notebook editing, cell execution, reactive updates, UI widgets
 
-The SageMaker Studio Lab gateway (AWS ALB) sits between the browser and the Jupyter server. While ALB nominally supports WebSocket, there's a known behavior where it can replace `Connection: Upgrade` headers with `Connection: Keep-Alive` on certain proxy paths. The SageMaker gateway adds additional routing that compounds this issue.
+## Root cause
 
-Jupyter's own WebSocket paths (`/api/kernels/*/channels`, `/terminals/websocket/*`) work because they're handled directly by the Jupyter server before reaching the proxy extension layer. The proxy extension's WebSocket forwarding to backend services doesn't survive the gateway.
+**The SageMaker JupyterLab proxy does not forward marimo's session cookie, so
+marimo rejects the WebSocket handshake with HTTP 403.**
 
-## What We've Ruled Out
+marimo sets a session cookie on the initial HTTP request and requires that
+cookie to be present on the subsequent WebSocket upgrade to `/ws`. SageMaker's
+proxy strips it, so marimo returns **403 Forbidden** and refuses the upgrade.
+In the marimo server log this appears as:
+
+```
+INFO:     ("WebSocket /ws" 403)
+INFO:     connection rejected (403 Forbidden)
+INFO:     connection closed
+```
+
+In the browser console it surfaces as a WebSocket that closes with code
+**1006** — but the underlying cause is the 403 handshake rejection, not an
+abnormal close of an established connection.
+
+> **Correction:** earlier versions of this document attributed the failure to
+> an AWS ALB rewriting `Connection: Upgrade` to `Connection: Keep-Alive`. That
+> was wrong. The failure is a **session-cookie / 403 handshake rejection at the
+> proxy layer**, confirmed by multiple independent reports on real SageMaker
+> Studio (see Upstream status).
+
+## What we've ruled out
 
 | Approach | Result |
 |----------|--------|
-| jupyter-server-proxy 3.2.4 (downgrade) | Same WebSocket failure |
-| jupyter-server-proxy 4.4.0 (current) | HTTP works, WebSocket fails |
-| marimo `--allow-origins '*'` | No effect on WebSocket |
-| marimo `--base-url` with proxy path | Creates double-prefix routing problem |
-| marimo `--proxy` flag | Doesn't help with gateway-level issue |
+| Downgrading jupyter-server-proxy (3.x) | No effect — the problem isn't in the proxy version |
+| marimo `--allow-origins '*'` | No effect on the 403 |
+| marimo `--no-token` / `--trusted` | No effect on the 403 (cookie still stripped) |
+| marimo `--base-url /jupyterlab/default/proxy/PORT` | Produces double-prefixed, mangled URLs; does not fix the handshake |
 
 ## Workaround: ws-sse-proxy
 
-This repo uses [ws-sse-proxy](https://github.com/scttfrdmn/ws-sse-proxy), a generic WebSocket-to-SSE translation proxy. It's not marimo-specific — it works with any WebSocket-dependent web application behind a broken proxy.
+[ws-sse-proxy](https://github.com/scttfrdmn/ws-sse-proxy) is a generic
+WebSocket-to-SSE translation proxy (on PyPI). It is not marimo-specific.
 
-### How it works
+### Why it works
 
 ```
-Browser → SageMaker Gateway → jupyter-server-proxy → ws-sse-proxy (port 2719) → WebSocket → marimo (port 2718)
-              (HTTP + SSE only)                                                   (localhost, works)
+Browser → SageMaker proxy → ws-sse-proxy (:2719) → WebSocket → marimo (:2718)
+             (HTTP + SSE only)                      (localhost — cookie intact)
 ```
 
-1. The proxy passes all HTTP requests through to marimo unchanged
-2. It injects a small JavaScript shim that monkey-patches `window.WebSocket`
-3. The patched WebSocket tries real WebSocket first — if it works (non-SageMaker), zero overhead
-4. On SageMaker, when WebSocket fails with code 1006, it falls back to SSE + HTTP POST
-5. The `/__wss/events` SSE endpoint opens a real WebSocket to marimo on localhost and streams messages back
-6. The `/__wss/send` POST endpoint forwards user actions to marimo via the local WebSocket
+The key insight: ws-sse-proxy opens the real WebSocket to marimo **over
+localhost**, inside the space, where the session cookie and origin are intact —
+so marimo accepts the handshake. Only plain HTTP and Server-Sent Events cross
+the SageMaker proxy, and those are not blocked.
+
+1. All HTTP passes through to marimo unchanged.
+2. A small JavaScript shim is injected that wraps `window.WebSocket`.
+3. The shim tries a real WebSocket first — if it works (e.g. local dev), zero overhead.
+4. When the real WebSocket fails, it falls back to SSE + HTTP POST.
+5. `/__wss/events` (SSE) opens a real WebSocket to marimo on localhost and streams messages back.
+6. `/__wss/send` (POST) forwards user actions to marimo over that local WebSocket.
+
+<!-- TODO(verify): the shim's fallback currently triggers on WebSocket close
+     code 1006 / stall. Confirm on a live SageMaker Studio space that it also
+     engages when the failure is a 403 handshake rejection. If it does not, the
+     fallback trigger needs to be broadened in the ws-sse-proxy repo. See
+     https://github.com/scttfrdmn/aws-marimo-sagemaker/issues/8 -->
 
 ### Usage
 
 ```bash
-pip install ws-sse-proxy
-bash start-marimo-shim.sh
+pip install marimo ws-sse-proxy
+bash start-marimo.sh
 ```
 
-Then access marimo at `/proxy/2719/` (the proxy port, not marimo's port).
+Then open marimo at the **proxy** port (`2719`), not marimo's port (`2718`):
 
-## Potential Solutions (Upstream)
+```
+https://<domain>/jupyterlab/default/proxy/2719/
+```
 
-### 1. marimo HTTP fallback transport (Best long-term fix)
-Add SSE or HTTP long-polling as a fallback when WebSocket is unavailable. marimo's server architecture already separates the `SessionConsumer` interface from the WebSocket transport (`ws_endpoint.py`), making this feasible. The shim in this repo demonstrates the approach.
+<!-- TODO(verify): confirm the exact proxy base path on standalone SageMaker
+     Studio vs SageMaker Unified Studio (they differ). See issue #8. -->
 
-**Target:** [marimo-team/marimo](https://github.com/marimo-team/marimo)
+## Upstream status
 
-### 2. marimo-jupyter-extension SageMaker support
-The marimo team has an open issue for SageMaker support. Note: the extension currently uses jupyter-server-proxy under the hood (iframe to proxied URL), so it has the same WebSocket problem. A fix could incorporate the SSE shim approach.
+The real fix belongs in marimo (or the marimo Jupyter extension): make the
+WebSocket handshake work without the stripped cookie, or add an SSE/long-poll
+fallback transport.
 
-**Target:** [marimo-jupyter-extension #8](https://github.com/marimo-team/marimo-jupyter-extension/issues/8)
+- [marimo-team/marimo-jupyter-extension#8](https://github.com/marimo-team/marimo-jupyter-extension/issues/8)
+  — "feat: support sagemaker". **Open, unassigned, no fix as of 2026-06-30.**
+  Community investigation there identified the cookie-stripping 403 root cause.
+- [marimo-team/marimo#8060](https://github.com/marimo-team/marimo/issues/8060)
+  — original WebSocket report; closed 2026-02-06 as SageMaker-specific and
+  redirected to the extension issue.
 
-### 3. marimo WASM mode
-marimo can run entirely in the browser via WebAssembly/Pyodide, eliminating the need for WebSocket. However, this can't access SageMaker-specific resources (boto3, local files, GPUs).
+Until upstream ships a native fix, **ws-sse-proxy is the working path** for
+interactive marimo on SageMaker Studio.
 
-**Status:** Available now via `marimo export html-wasm`
+## Alternative: WASM export (no server, no WebSocket)
 
-## Related Issues
+marimo can run entirely in the browser via WebAssembly/Pyodide, which needs no
+WebSocket at all:
 
-- [marimo #8060](https://github.com/marimo-team/marimo/issues/8060) - WebSocket issue on AWS SageMaker
-- [marimo-jupyter-extension #8](https://github.com/marimo-team/marimo-jupyter-extension/issues/8) - feat: support sagemaker
-- [jupyter-server-proxy #404](https://github.com/jupyterhub/jupyter-server-proxy/issues/404) - Version 4.0.0 breaks SageMaker Studio environment (different product, but related context)
-- [dask/dask #5432](https://github.com/dask/dask/issues/5432) - Proxying Dask/Bokeh Web Interface on AWS SageMaker (same root cause)
+```bash
+marimo export html-wasm notebook.py -o output_dir
+```
 
-## Previous Incorrect Advice
-
-Earlier versions of this repo recommended downgrading jupyter-server-proxy from 4.x to 3.2.4. **This is not necessary.** The downgrade:
-- Does not fix the WebSocket issue (it's in the gateway, not the proxy)
-- Can break the conda-managed extension registration (pip install overwrites conda metadata)
-- References issue #404, which was about SageMaker Studio (a different product), not Studio Lab
-
-Use the conda-provided version of jupyter-server-proxy (currently 4.4.0) with no modification.
+This can't access space-local resources (boto3 with the space role, local
+files, GPUs), so it's suited to static/shareable notebooks rather than
+interactive SageMaker work.

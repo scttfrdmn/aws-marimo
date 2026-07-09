@@ -1,46 +1,30 @@
 #!/bin/bash
-# Upgrade marimo and sync with GitHub repository
+# Upgrade marimo and ws-sse-proxy in the current environment.
+#
+# On SageMaker Studio (JupyterLab space) the space's own Python environment is
+# already active — there is no dedicated conda env to activate (that was the
+# Studio Lab model, removed in v0.2.0).
+
+set -e
 
 echo "================================================"
-echo "  marimo Update & Upgrade Script"
+echo "  marimo + ws-sse-proxy upgrade"
 echo "================================================"
 echo ""
 
-# Activate conda environment
-eval "$(conda shell.bash hook)"
-conda activate marimo-env
-
-# Step 1: Update repository from GitHub
-if [ -d ~/aws-marimo-sagemaker ]; then
-    echo "📦 Step 1: Updating repository from GitHub..."
-    cd ~/aws-marimo-sagemaker
-    git pull origin main
-    cd - > /dev/null
-    echo "✅ Repository updated"
-else
-    echo "⚠️  Repository not found at ~/aws-marimo-sagemaker"
-fi
-
+echo "Current versions:"
+marimo --version 2>&1 | sed 's/^/  marimo: /' || echo "  marimo: not installed"
+python -c "import importlib.metadata as m; print('  ws-sse-proxy:', m.version('ws-sse-proxy'))" 2>/dev/null \
+    || echo "  ws-sse-proxy: not installed"
 echo ""
 
-# Step 2: Upgrade marimo package
-echo "⬆️  Step 2: Upgrading marimo to latest version..."
-CURRENT_VERSION=$(marimo --version 2>&1)
-echo "   Current version: $CURRENT_VERSION"
-echo ""
-
-pip install --upgrade marimo
-
-NEW_VERSION=$(marimo --version 2>&1)
-echo ""
-echo "✅ Upgrade complete!"
-echo "   New version: $NEW_VERSION"
+echo "Upgrading..."
+pip install --upgrade marimo ws-sse-proxy
 
 echo ""
-echo "================================================"
-echo "  ✅ All updates complete!"
-echo "================================================"
+echo "New versions:"
+marimo --version 2>&1 | sed 's/^/  marimo: /'
+python -c "import importlib.metadata as m; print('  ws-sse-proxy:', m.version('ws-sse-proxy'))" 2>/dev/null || true
+
 echo ""
-echo "To start marimo:"
-echo "  ~/start-marimo.sh"
-echo ""
+echo "Upgrade complete. Start marimo with:  bash start-marimo.sh"

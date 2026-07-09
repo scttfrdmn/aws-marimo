@@ -1,387 +1,165 @@
-# marimo on Amazon SageMaker
+# marimo on Amazon SageMaker Studio
 
-Run [marimo](https://marimo.io), the reactive Python notebook, on Amazon SageMaker Studio and Studio Lab.
+Run [marimo](https://marimo.io), the reactive Python notebook, on Amazon
+SageMaker Studio — with interactive cell execution working, via a small
+WebSocket-to-SSE shim.
 
-[![Setup on Studio Lab](https://img.shields.io/badge/Setup_on-SageMaker_Studio_Lab-orange?logo=amazon-aws&logoColor=white)](BOOTSTRAP.md)
 [![5-Minute Setup](https://img.shields.io/badge/⚡_5--Minute-Setup_Guide-brightgreen)](QUICKSTART.md)
 [![Python](https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white)](https://www.python.org)
-[![marimo](https://img.shields.io/badge/marimo-0.21.1+-green?logo=python)](https://marimo.io)
+[![marimo](https://img.shields.io/badge/marimo-latest-green?logo=python)](https://marimo.io)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.1.1-blue)](VERSION)
+[![Version](https://img.shields.io/badge/version-0.2.0-blue)](VERSION)
 
 ---
 
-## ⚡ One-Command Setup
-
-For SageMaker Studio Lab (free, no AWS account required):
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/scttfrdmn/aws-marimo-sagemaker/main/bootstrap.sh | bash
-```
-
-**Then start marimo:**
-```bash
-~/start-marimo.sh
-```
-
-[📖 Full Bootstrap Guide](BOOTSTRAP.md) | [⚙️ Manual Setup](QUICKSTART.md)
+> ### ⚠️ Studio Lab is no longer supported
+> Earlier versions of this project targeted **SageMaker Studio Lab**. AWS is
+> [closing Studio Lab to new customers on 2026-07-30](https://docs.aws.amazon.com/sagemaker/latest/dg/studio-lab-availability-change.html),
+> so as of **v0.2.0** this project targets full **SageMaker Studio** (the
+> JupyterLab experience) and **SageMaker Unified Studio** only. If you need the
+> Studio Lab scripts, use the [`v0.1.1` release](https://github.com/scttfrdmn/aws-marimo-sagemaker/releases/tag/v0.1.1).
+> SageMaker Studio *Classic* is also EOL (no new onboarding) and is not a target.
 
 ---
 
-## ⚠️ Known Limitation: WebSocket on SageMaker Studio Lab
+## The one thing you need to know
 
-**marimo's home page loads but notebooks show blank cells or "connecting" status.**
+On SageMaker Studio, marimo's home page and file browser load fine, but
+**notebooks get stuck "connecting" with blank cells**. The SageMaker JupyterLab
+proxy strips marimo's session cookie, so marimo rejects its WebSocket handshake
+with HTTP 403.
 
-This is a known limitation of SageMaker Studio Lab's gateway/ALB infrastructure. HTTP proxying through jupyter-server-proxy works correctly — you can browse marimo's file list — but WebSocket connections (which marimo requires for cell execution) are dropped by the SageMaker gateway on `/proxy/PORT/` paths. This affects all WebSocket-dependent proxied applications, not just marimo.
+The fix is [ws-sse-proxy](https://github.com/scttfrdmn/ws-sse-proxy): it runs
+marimo behind a shim that keeps the WebSocket on localhost (where the cookie is
+intact) and only sends HTTP + Server-Sent Events through the SageMaker proxy.
+Full detail and root cause: **[WEBSOCKET-STATUS.md](WEBSOCKET-STATUS.md)**.
 
-**What works:**
-- ✅ marimo home page / file browser via `/proxy/2718/`
-- ✅ HTTP API requests through the proxy
-- ✅ jupyter-server-proxy 4.4.0 (conda default) — no downgrade needed
+## Quick start
 
-**What doesn't work (without the shim):**
-- ❌ Interactive notebook editing (requires WebSocket)
-- ❌ Cell execution and reactive updates (requires WebSocket)
+In a SageMaker Studio JupyterLab terminal:
 
-**Workaround included:** This repo uses [ws-sse-proxy](https://github.com/scttfrdmn/ws-sse-proxy) to translate WebSocket to SSE, making marimo fully functional on Studio Lab. See [WEBSOCKET-STATUS.md](WEBSOCKET-STATUS.md) for details, or just run:
 ```bash
-bash start-marimo-shim.sh
-# Then access at /proxy/2719/
+pip install marimo ws-sse-proxy
+curl -fsSL https://raw.githubusercontent.com/scttfrdmn/aws-marimo-sagemaker/main/start-marimo.sh -o start-marimo.sh
+bash start-marimo.sh
 ```
 
-**Tracking:** [marimo-jupyter-extension #8](https://github.com/marimo-team/marimo-jupyter-extension/issues/8) and [marimo #8060](https://github.com/marimo-team/marimo/issues/8060)
+Then open marimo at the **proxy** port (`2719`), not marimo's port:
 
----
+```
+https://<domain>.studio.<region>.sagemaker.aws/jupyterlab/default/proxy/2719/
+```
 
-## 🚀 Quick Start (5 Minutes)
+<!-- TODO(verify): confirm the exact proxy base path on standalone SageMaker
+     Studio vs SageMaker Unified Studio — they differ. See issue #8. -->
 
-**Want to try marimo right now?**
+See **[QUICKSTART.md](QUICKSTART.md)** for the step-by-step, and
+`lifecycle-config/install-marimo.sh` for a persistent install via a JupyterLab
+lifecycle configuration.
 
-👉 **[Start with the Quick Start Guide](QUICKSTART.md)** - Get marimo running in 5 minutes on SageMaker Studio Lab (free!) or Studio.
-
-## 📚 What's Included
-
-This repository provides:
-
-1. **📖 [Complete Blog Post](blog-post.md)** (~2000 words)
-   - Deep dive into marimo's features
-   - Why use marimo on SageMaker
-   - Architecture overview
-   - Deployment strategies
-   - Best practices and troubleshooting
-
-2. **⚡ [Quick Start Guide](QUICKSTART.md)**
-   - 5-minute setup for Studio Lab (free)
-   - Easy installation for Studio
-   - Sample notebooks
-   - Troubleshooting tips
-
-3. **🔧 Infrastructure as Code** *(planned — not yet available)*
-   - `terraform/` - Terraform deployment
-   - `cdk/` - AWS CDK (Python) deployment
-   - Lifecycle configurations
-   - Sample notebooks
-
-   > **Note:** The `terraform/`, `cdk/`, and `notebooks/` directories are on the
-   > roadmap but not in this release. Today the project targets manual and
-   > bootstrap-based setup on Studio Lab / Studio. Track progress in
-   > [CHANGELOG.md](CHANGELOG.md).
-
-4. **🎓 [Demo Notebook](sagemaker_ml_demo.py)**
-   - Complete ML workflow
-   - Interactive data exploration
-   - Model training with reactive parameters
-   - SageMaker integration examples
-
-## 🎯 Choose Your Path
-
-### Path 1: Just Try It (Fastest)
-**Perfect for**: Learning, experimenting, quick demos
-
-1. Get free SageMaker Studio Lab account
-2. Follow [QUICKSTART.md](QUICKSTART.md)
-3. Try the sample notebook
-4. Total time: ~10 minutes
-
-### Path 2: Manual Setup on Studio/Studio Lab
-**Perfect for**: Individual users, existing Studio environment
-
-1. Open SageMaker Studio or Studio Lab
-2. Run `pip install marimo jupyter-server-proxy`
-3. Start with `marimo edit --host 0.0.0.0 --port 2718 --no-token --headless`
-4. See [QUICKSTART.md](QUICKSTART.md) for details
-5. **Note:** On Studio Lab, WebSocket connections are blocked by the gateway — see [known limitation](#-known-limitation-websocket-on-sagemaker-studio-lab)
-
-### Path 3: Production Deployment *(planned)*
-**Perfect for**: Teams, production workloads, persistent setup
-
-1. Read the [blog post](blog-post.md) for architecture understanding
-2. Terraform and CDK deployments are on the roadmap (not yet in this release)
-3. For now, use the bootstrap or manual setup on Studio / Studio Lab
-
-## 💡 Why marimo?
+## Why marimo?
 
 Traditional Jupyter notebooks have well-known issues:
 - ❌ Hidden state from out-of-order execution
 - ❌ JSON format causes Git conflicts
-- ❌ ~75% of notebooks on GitHub don't run
-- ❌ Hard to reproduce research
+- ❌ Hard to reproduce
 
-**marimo solves these problems:**
-- ✅ Reactive execution - cells auto-update when dependencies change
-- ✅ Stored as pure Python - Git-friendly, executable as scripts
-- ✅ No hidden state - deterministic, reproducible
-- ✅ Interactive UI widgets - no callbacks needed
-- ✅ Three tools in one - notebook, script, and web app
+marimo solves these:
+- ✅ Reactive execution — cells auto-update when dependencies change
+- ✅ Stored as pure Python — Git-friendly, runnable as scripts
+- ✅ No hidden state — deterministic, reproducible
+- ✅ Interactive UI widgets with no callbacks
+- ✅ One file is a notebook, a script, and a web app
 
-## 🏗️ Architecture
+## Architecture
 
 ```
-┌─────────────────────────────────────┐
-│   SageMaker Studio / Studio Lab     │
-│  ┌───────────────────────────────┐  │
-│  │  JupyterLab Environment       │  │
-│  │  ┌─────────────────────────┐  │  │
-│  │  │ jupyter-server-proxy    │  │  │
-│  │  │         ↓                │  │  │
-│  │  │ marimo server (:2718)   │  │  │
-│  │  └─────────────────────────┘  │  │
-│  └───────────────────────────────┘  │
-└─────────────────────────────────────┘
+┌──────────────────────────────────────────────┐
+│  SageMaker Studio (JupyterLab space)          │
+│                                               │
+│   Browser ──/jupyterlab/default/proxy/2719/── │
+│        │        (HTTP + SSE only)             │
+│        ▼                                      │
+│   ws-sse-proxy  (:2719)                       │
+│        │  WebSocket over localhost            │
+│        ▼  (session cookie intact)             │
+│   marimo server (127.0.0.1:2718)              │
+└──────────────────────────────────────────────┘
 ```
 
-## 📦 Repository Structure
+## What works where
+
+| Capability | Local | SageMaker Studio (via shim) | Studio Lab (EOL, v0.1.x) |
+|---|---|---|---|
+| HTTP / file browser | ✅ | ✅ | ✅ |
+| Cell execution (WebSocket) | ✅ | ⚠️ via ws-sse-proxy <!-- TODO(verify) --> | ❌ |
+| Reactive updates | ✅ | ⚠️ via ws-sse-proxy <!-- TODO(verify) --> | ❌ |
+| UI widgets | ✅ | ⚠️ via ws-sse-proxy <!-- TODO(verify) --> | ❌ |
+| `marimo run` app mode | ✅ | ⚠️ via ws-sse-proxy <!-- TODO(verify) --> | ❌ |
+| WASM export (no server) | ✅ | ✅ | ✅ |
+
+The ⚠️ rows are the workaround this repo provides. They are pending end-to-end
+verification on a live SageMaker Studio space — see
+[issue #8](https://github.com/scttfrdmn/aws-marimo-sagemaker/issues/8).
+
+## Repository structure
 
 ```
 .
 ├── README.md                    # This file
-├── QUICKSTART.md               # 5-minute setup guide
-├── BOOTSTRAP.md                # One-command bootstrap guide
-├── STUDIO-LAB-SETUP.md         # Automated Studio Lab setup
-├── BADGES.md                   # Badge options for READMEs
-├── WEBSOCKET-STATUS.md         # WebSocket proxy status & research
-├── CONTRIBUTING.md             # Contribution guidelines
-├── CHANGELOG.md                # Version history (Keep a Changelog)
-├── LICENSE                     # MIT License
-├── VERSION                     # Semantic version (0.1.1)
-├── blog-post.md                # Full blog post (~2000 words)
-├── sagemaker_ml_demo.py        # Complete demo notebook
-├── bootstrap.sh                # One-command setup script
-├── start-marimo-shim.sh        # Start marimo with WebSocket shim
-├── studio-lab-setup.sh         # Setup script with conda env
-└── uninstall.sh                # Remove marimo setup
-
-# Planned (not yet in this release):
-#   terraform/                  # Terraform IaC
-#   cdk/                        # AWS CDK IaC
-#   notebooks/                  # Sample notebooks
+├── QUICKSTART.md                # Step-by-step setup on SageMaker Studio
+├── WEBSOCKET-STATUS.md          # Root cause + why ws-sse-proxy fixes it
+├── blog-post.md                 # Long-form write-up (draft)
+├── start-marimo.sh              # Launch marimo + ws-sse-proxy
+├── upgrade-marimo.sh            # Upgrade marimo + ws-sse-proxy
+├── uninstall.sh                 # Remove the local setup
+├── diagnose-proxy.sh            # Troubleshoot proxy/access
+├── lifecycle-config/
+│   └── install-marimo.sh        # Persistent install via JupyterLab LCC
+├── marimo-demo.py               # Simple reactive demo
+├── sagemaker_ml_demo.py         # ML workflow demo
+├── CONTRIBUTING.md
+├── CHANGELOG.md
+├── LICENSE
+└── VERSION
 ```
 
-## 🎓 Sample Notebooks
+## Sample
 
-### Quick Demo
 ```python
 import marimo as mo
 
-# Interactive slider
 slider = mo.ui.slider(0, 100, value=50)
-
-# Automatically updates when slider changes!
-result = slider.value ** 2
+result = slider.value ** 2          # recomputes automatically when the slider moves
 mo.md(f"Value: {slider.value}, Squared: {result}")
 ```
 
-### SageMaker Integration
-```python
-import marimo as mo
-import boto3
+See [sagemaker_ml_demo.py](sagemaker_ml_demo.py) for a complete example,
+including `boto3` SageMaker integration.
 
-sagemaker = boto3.client('sagemaker')
+## Upstream
 
-# List training jobs
-jobs = sagemaker.list_training_jobs(MaxResults=10)
+The real fix belongs in marimo. Track / support it here:
+- [marimo-jupyter-extension #8 — feat: support sagemaker](https://github.com/marimo-team/marimo-jupyter-extension/issues/8) (open)
+- [marimo #8060 — WebSocket issue on SageMaker](https://github.com/marimo-team/marimo/issues/8060) (closed, redirected to #8)
 
-# Interactive table
-mo.ui.table(jobs['TrainingJobSummaries'])
-```
+Until a native fix ships, ws-sse-proxy is the working path.
 
-See [sagemaker_ml_demo.py](sagemaker_ml_demo.py) for a complete, production-ready example.
+## Troubleshooting
 
-## 🚢 Deployment Options
+Run `bash diagnose-proxy.sh`, or see [QUICKSTART.md](QUICKSTART.md#troubleshooting).
+Common gotcha: access the **proxy** port `2719`, not marimo's `2718`.
 
-### Manual (Available Now)
+## License
 
-See [QUICKSTART.md](QUICKSTART.md) - just `pip install marimo` and go! This is
-the supported path today for both Studio Lab (free) and Studio.
+This repository: MIT. marimo: Apache 2.0. ws-sse-proxy: MIT.
 
-### Terraform / AWS CDK *(planned — not yet available)*
+## Acknowledgments
 
-Infrastructure-as-code deployments (`terraform/` and `cdk/`) that provision a
-SageMaker Studio Domain, VPC, IAM roles, lifecycle configuration, and an S3
-artifact bucket are on the roadmap. They are **not** part of this release — the
-commands and architecture in [blog-post.md](blog-post.md) describe the intended
-design, not shipped code. Use the manual or bootstrap setup for now.
-
-## 💰 Cost Comparison
-
-| Option | Cost | Best For |
-|--------|------|----------|
-| **Studio Lab** | **$0** (100% free) | Learning, small projects |
-| **Studio (manual)** | ~$0.05-2/hour | Individual use, testing |
-| **Studio (IaC)** | ~$1-5/hour | Teams, production |
-
-marimo's lightweight architecture means minimal overhead costs.
-
-## 🔧 Maintenance
-
-### Updating marimo
-
-**Studio Lab / Manual:**
-```bash
-pip install --upgrade marimo
-```
-
-### Cleanup
-
-**Manual / Bootstrap:**
-Run `bash uninstall.sh` to remove the conda environment, helper scripts, and
-demo files — or just stop using it, since there's no cloud infrastructure to
-tear down.
-
-**Terraform / CDK:** *(applies once IaC ships)* `terraform destroy` / `cdk destroy`.
-
-## 🤝 Use Cases
-
-marimo on SageMaker is perfect for:
-
-- 🔬 **Reproducible Research** - Pure Python format, no hidden state
-- 👥 **Team Collaboration** - Git-friendly, version-controlled notebooks
-- 📊 **Interactive Dashboards** - Reactive UI updates, deploy as web apps
-- 🚀 **MLOps Pipelines** - Run notebooks as scripts in CI/CD
-- 🎓 **Teaching & Demos** - Predictable execution, professional output
-- 🔍 **Data Exploration** - Interactive filtering and visualization
-
-## 🆚 marimo vs Jupyter
-
-**When to use marimo:**
-- ✅ Building dashboards or interactive apps
-- ✅ Need reproducible, version-controlled research
-- ✅ Want reactive, automatic updates
-- ✅ Creating reusable modules or pipelines
-- ✅ Teaching or presenting (no hidden state issues)
-
-**When to use Jupyter:**
-- ✅ Quick ad-hoc exploration
-- ✅ Team heavily invested in Jupyter ecosystem
-- ✅ Need specific Jupyter extensions
-
-**Best practice:** Use both! Convert between formats as needed with `marimo convert`.
-
-## ❓ Troubleshooting
-
-Common issues and solutions are in [QUICKSTART.md](QUICKSTART.md#troubleshooting).
-
-Quick fixes:
-- **Can't access UI**: Check proxy URL path
-- **Port in use**: Use different port (`--port 8889`)
-- **Proxy not working**: Run `jupyter serverextension enable --py jupyter_server_proxy`
-
-## 🎯 Next Steps
-
-1. ✅ Try the [Quick Start](QUICKSTART.md) (5 minutes)
-2. ✅ Read the [blog post](blog-post.md) for deep dive
-3. ✅ Run the [demo notebook](sagemaker_ml_demo.py)
-4. ✅ Convert your Jupyter notebooks: `marimo convert notebook.ipynb`
-5. ✅ Deploy with infrastructure-as-code for production use
-
-## 🌟 Features Showcase
-
-### Reactive Execution
-```python
-# Change slider, everything updates automatically
-slider = mo.ui.slider(0, 100)
-filtered_data = data[data['value'] > slider.value]
-plot = create_plot(filtered_data)  # Auto-updates!
-```
-
-### Git-Friendly
-```bash
-# Clean diffs, no JSON
-git diff notebook.py
-
-# Run as script
-python notebook.py
-
-# Deploy as app
-marimo run notebook.py
-```
-
-### Interactive UI
-```python
-# No callbacks needed!
-dropdown = mo.ui.dropdown(['A', 'B', 'C'])
-table = mo.ui.table(dataframe)
-plot = mo.ui.plotly(figure)
-```
-
-## 📄 License
-
-This repository: MIT License
-
-marimo: Apache 2.0 License
-
-## 🙏 Acknowledgments
-
-- **marimo team** - for building an amazing reactive notebook platform
-- **AWS SageMaker team** - for creating a flexible ML platform
-- **Community** - for feedback and contributions
-
-## 📬 Support
-
-- **Issues**: Open an issue in this repository
-- **marimo Discord**: https://marimo.io/discord
-- **AWS Support**: https://aws.amazon.com/support/
+- The **marimo team** for the reactive notebook platform.
+- Contributors on [marimo-jupyter-extension #8](https://github.com/marimo-team/marimo-jupyter-extension/issues/8) who pinned down the SageMaker cookie/403 root cause.
 
 ---
 
-## 📚 Documentation
-
-- **[Quick Start Guide](QUICKSTART.md)** - Get running in 5 minutes
-- **[Bootstrap Guide](BOOTSTRAP.md)** - One-command automated setup
-- **[Studio Lab Setup](STUDIO-LAB-SETUP.md)** - Persistent conda environment
-- **[WebSocket Status](WEBSOCKET-STATUS.md)** - WebSocket limitation details
-- **[Blog Post](blog-post.md)** - Complete guide (~2000 words)
-- **[Badge Options](BADGES.md)** - Add badges to your own projects
-- **[Contributing](CONTRIBUTING.md)** - How to contribute
-- **[Changelog](CHANGELOG.md)** - Version history
-
-## 📝 Project Info
-
-- **Version**: 0.1.1 ([Semantic Versioning](https://semver.org/))
-- **License**: [MIT](LICENSE)
-- **Copyright**: © 2026 Scott Friedman
-- **Changelog**: [Keep a Changelog](https://keepachangelog.com/) format
-
-## 🤝 Contributing
-
-Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-To contribute:
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
-
-See [CHANGELOG.md](CHANGELOG.md) for version history.
-
----
-
-**Ready to get started?**
-
-👉 One command: `curl -fsSL https://raw.githubusercontent.com/scttfrdmn/aws-marimo-sagemaker/main/bootstrap.sh | bash`
-
-👉 Or manual: [QUICKSTART.md](QUICKSTART.md)
-
-👉 Deep dive: [Full blog post](blog-post.md)
-
-Happy reactive coding! 🚀
+- **Version**: 0.2.0 ([SemVer](https://semver.org/)) · **License**: [MIT](LICENSE) · © 2026 Scott Friedman
+- Contributions welcome — see [CONTRIBUTING.md](CONTRIBUTING.md).

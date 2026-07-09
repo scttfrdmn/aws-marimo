@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-07-08
+
+Retargets the project from the now-EOL SageMaker Studio Lab to full **SageMaker
+Studio** (JupyterLab) and **SageMaker Unified Studio**, with `ws-sse-proxy` as
+the built-in fix for marimo's WebSocket problem.
+
+> **Verification pending:** the interactive path (cell execution via
+> ws-sse-proxy) is designed and wired but not yet confirmed end-to-end on a live
+> SageMaker Studio space. Docs mark such claims with `TODO(verify)`. Tracking:
+> [issue #8](https://github.com/scttfrdmn/aws-marimo-sagemaker/issues/8).
+
+### Added
+- `start-marimo.sh` — launches marimo (127.0.0.1:2718) + ws-sse-proxy (2719).
+- `lifecycle-config/install-marimo.sh` — persistent install via a JupyterLab
+  lifecycle configuration (app type `JupyterLab`).
+- Per-platform "what works where" support matrix in README and blog post.
+
+### Changed
+- Corrected the WebSocket root cause in `WEBSOCKET-STATUS.md`: SageMaker's
+  JupyterLab proxy strips marimo's session cookie, so marimo rejects the `/ws`
+  handshake with **HTTP 403** (not an ALB `Connection: Upgrade` rewrite).
+- Rewrote `README.md`, `QUICKSTART.md`, and `blog-post.md` around SageMaker
+  Studio + ws-sse-proxy; corrected the proxy path to `/jupyterlab/default/proxy/`.
+- `upgrade-marimo.sh`, `uninstall.sh`, `diagnose-proxy.sh` no longer assume the
+  Studio Lab `marimo-env` conda env or bootstrap clone.
+- Demo notebooks: dropped the Studio-Lab `__generated_with` sed-rewrite comment.
+
+### Removed
+- Studio Lab scripts and docs: `studio-lab-setup.sh`, `bootstrap.sh`,
+  `start-marimo-improved.sh`, `start-marimo-shim.sh`, `fix-proxy.sh`,
+  `fix-proxy-version.sh`, `STUDIO-LAB-SETUP.md`, `STUDIO-LAB-ACCESS.md`,
+  `BOOTSTRAP.md`, `BADGES.md`, and the `chat.md` build-log artifact.
+  (Studio Lab support remains available in the `v0.1.1` release.)
+
 ## [0.1.1] - 2026-07-08
 
 **Final SageMaker Studio Lab release.** AWS is closing Studio Lab to new
@@ -53,6 +87,7 @@ Studio (JupyterLab). See the
 - Troubleshooting sections
 - Comparison tables (Studio Lab vs Studio)
 
-[unreleased]: https://github.com/scttfrdmn/aws-marimo-sagemaker/compare/v0.1.1...HEAD
+[unreleased]: https://github.com/scttfrdmn/aws-marimo-sagemaker/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/scttfrdmn/aws-marimo-sagemaker/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/scttfrdmn/aws-marimo-sagemaker/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/scttfrdmn/aws-marimo-sagemaker/releases/tag/v0.1.0

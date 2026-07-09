@@ -1,38 +1,54 @@
-# Quick Start: marimo on SageMaker in 5 Minutes
+# Quick Start: marimo on SageMaker Studio
 
-This guide shows the **easiest** way to get marimo running on Amazon SageMaker Studio Lab (free!) or SageMaker Studio.
+Get marimo running interactively on Amazon SageMaker Studio in a few minutes.
 
-## Option 1: SageMaker Studio Lab (100% Free, No AWS Account Required!)
+> **Platforms:** full **SageMaker Studio** (JupyterLab) and **SageMaker Unified
+> Studio**. Studio Lab (EOL 2026-07-30) and Studio Classic (EOL) are not
+> supported — see the [README](README.md#️-studio-lab-is-no-longer-supported).
 
-Perfect for learning and experimentation without any AWS costs.
+## Why the extra proxy?
 
-### Step 1: Get Studio Lab Access
-1. Go to https://studiolab.sagemaker.aws
-2. Request a free account (approval usually within 1-2 days)
-3. Sign in and start your runtime
+marimo's UI will load, but notebooks stay stuck "connecting" with blank cells.
+SageMaker's JupyterLab proxy strips marimo's session cookie, so marimo rejects
+its WebSocket handshake with HTTP 403. [ws-sse-proxy](https://github.com/scttfrdmn/ws-sse-proxy)
+works around it by keeping the WebSocket on localhost. Full detail:
+[WEBSOCKET-STATUS.md](WEBSOCKET-STATUS.md).
 
-### Step 2: Install marimo (30 seconds)
-Open a terminal in Studio Lab and run:
+## Step 1: Open a terminal in your JupyterLab space
+
+In SageMaker Studio, launch a **JupyterLab** space and open a terminal
+(File → New → Terminal).
+
+## Step 2: Install marimo and the shim
 
 ```bash
-pip install marimo jupyter-server-proxy
+pip install marimo ws-sse-proxy
 ```
 
-### Step 3: Start marimo
+## Step 3: Start marimo behind the shim
+
 ```bash
-marimo edit
+curl -fsSL https://raw.githubusercontent.com/scttfrdmn/aws-marimo-sagemaker/main/start-marimo.sh -o start-marimo.sh
+bash start-marimo.sh
 ```
 
-### Step 4: Access marimo UI
-Click the URL shown in the terminal output, or navigate to:
+This launches marimo on `127.0.0.1:2718` and ws-sse-proxy on `2719`.
+
+## Step 4: Access the UI
+
+Open the **proxy** port (`2719`), not marimo's port. Copy your JupyterLab URL
+and replace everything after the host:
+
 ```
-/proxy/2718/
+https://<domain>.studio.<region>.sagemaker.aws/jupyterlab/default/proxy/2719/
 ```
 
-**That's it!** You now have marimo running on Studio Lab for free. 🎉
+<!-- TODO(verify): confirm the exact proxy base path on standalone SageMaker
+     Studio vs SageMaker Unified Studio (they differ). See issue #8. -->
 
-### Quick Test
-Try this in a new notebook cell:
+The marimo "Create a new notebook" screen appears, and cells now execute.
+
+### Quick test
 
 ```python
 import marimo as mo
@@ -41,264 +57,74 @@ slider = mo.ui.slider(0, 100, value=50)
 mo.md(f"Value: {slider.value}")
 ```
 
-Move the slider and watch the value update automatically!
+Move the slider — the value updates automatically.
 
-## Option 2: SageMaker Studio (For Production Use)
+## Persistent install (optional)
 
-If you already have SageMaker Studio set up, getting marimo is just as easy.
-
-### Super Quick Method (Manual Installation)
-
-1. **Open Studio** - Launch your SageMaker Studio instance
-2. **Open Terminal** - Click File > New > Terminal
-3. **Install marimo**:
-```bash
-pip install marimo jupyter-server-proxy
-```
-
-4. **Start marimo**:
-```bash
-marimo edit --host 0.0.0.0 --port 8888
-```
-
-5. **Access the UI** at:
-```
-/jupyter/default/proxy/8888/
-```
-
-### Automated Method (Lifecycle Configuration)
-
-For persistent installation across sessions, use a lifecycle configuration:
-
-#### Create Lifecycle Config Script
-
-Save this as `install-marimo.sh`:
+Instead of pip-installing each session, attach a lifecycle configuration to
+your JupyterLab app so marimo + ws-sse-proxy are always present. See
+`lifecycle-config/install-marimo.sh`:
 
 ```bash
-#!/bin/bash
-set -e
-
-pip install marimo jupyter-server-proxy
-jupyter serverextension enable --py jupyter_server_proxy --sys-prefix
-
-echo "marimo installed successfully!"
-```
-
-#### Deploy via AWS Console
-
-1. Go to SageMaker Console > Domains
-2. Click your domain > Studio settings
-3. Select "Lifecycle configurations"
-4. Create new configuration:
-   - Name: `marimo-install`
-   - Type: `JupyterServer`
-   - Upload: `install-marimo.sh`
-5. Attach to your user profile
-
-#### Deploy via AWS CLI
-
-```bash
-# Create lifecycle config
+LCC_CONTENT=$(base64 < lifecycle-config/install-marimo.sh)
 aws sagemaker create-studio-lifecycle-config \
     --studio-lifecycle-config-name marimo-setup \
-    --studio-lifecycle-config-app-type JupyterServer \
-    --studio-lifecycle-config-content file://install-marimo.sh
-
-# Update user profile to use it
-aws sagemaker update-user-profile \
-    --domain-id <your-domain-id> \
-    --user-profile-name <your-username> \
-    --user-settings JupyterServerAppSettings={
-        LifecycleConfigArns=["arn:aws:sagemaker:region:account:studio-lifecycle-config/marimo-setup"]
-    }
+    --studio-lifecycle-config-app-type JupyterLab \
+    --studio-lifecycle-config-content "$LCC_CONTENT"
 ```
 
-Now marimo installs automatically every time JupyterServer starts!
+Then attach it to your domain / user profile / space and select it when
+launching the space.
+<!-- TODO(verify): confirm LCC attach + startup on a live space (issue #8). -->
 
-## Quick Tips
-
-### Running marimo notebooks
+## Quick tips
 
 ```bash
-# Create a new notebook
+# Create / edit a notebook
 marimo edit my_notebook.py
 
-# Run existing notebook
+# Run as an app
 marimo run my_notebook.py
 
-# Execute as script
+# Execute as a plain script
 python my_notebook.py
-```
 
-### Converting Jupyter notebooks
-
-Already have Jupyter notebooks? Convert them:
-
-```bash
+# Convert an existing Jupyter notebook
 marimo convert analysis.ipynb -o analysis.py
 ```
 
-### Helper script for easy starting
-
-Create this helper script (`~/start-marimo.sh`):
-
-```bash
-#!/bin/bash
-PORT=${1:-8888}
-marimo edit --host 0.0.0.0 --port $PORT
-```
-
-Make it executable:
-```bash
-chmod +x ~/start-marimo.sh
-```
-
-Then start marimo anytime with:
-```bash
-~/start-marimo.sh
-```
-
-## Sample Notebook
-
-Try this sample to see marimo's reactive magic:
-
-```python
-import marimo
-
-app = marimo.App()
-
-@app.cell
-def __():
-    import marimo as mo
-    return mo,
-
-@app.cell
-def __(mo):
-    mo.md("# My First marimo Notebook on SageMaker!")
-    return
-
-@app.cell
-def __(mo):
-    # Create an interactive slider
-    x = mo.ui.slider(start=1, stop=10, value=5, label="x")
-    x
-    return x,
-
-@app.cell
-def __(mo, x):
-    # This automatically updates when slider changes!
-    y = x.value ** 2
-    mo.md(f"**x² = {y}**")
-    return y,
-
-@app.cell
-def __(mo, x, y):
-    # Plot also updates automatically
-    import plotly.graph_objects as go
-
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(
-        x=list(range(1, 11)),
-        y=[i**2 for i in range(1, 11)],
-        mode='lines+markers',
-        name='y = x²'
-    ))
-
-    # Highlight current point
-    fig.add_trace(go.Scatter(
-        x=[x.value],
-        y=[y],
-        mode='markers',
-        marker=dict(size=15, color='red'),
-        name='Current'
-    ))
-
-    mo.ui.plotly(fig)
-    return fig, go
-
-if __name__ == "__main__":
-    app.run()
-```
-
-Save this as `demo.py` and run:
-```bash
-marimo edit demo.py
-```
-
-Move the slider and watch everything update instantly!
-
 ## Troubleshooting
 
-### "Can't access marimo UI"
+Run `bash diagnose-proxy.sh` for an automated check, or:
 
-**Problem**: marimo server is running but can't access the UI
+### Can't access the UI
+Make sure you're using the **proxy** port: `/jupyterlab/default/proxy/2719/`
+(port `2719`), not marimo's `2718`.
 
-**Solution**: Make sure you're using the correct proxy URL:
-- Studio Lab: `/proxy/2718/`
-- Studio: `/jupyter/default/proxy/8888/`
+### Notebook loads but cells won't run
+This is the WebSocket/403 issue. Confirm you started marimo via
+`start-marimo.sh` (which puts ws-sse-proxy in front) and that you're on the
+`2719` path, not `2718`. See [WEBSOCKET-STATUS.md](WEBSOCKET-STATUS.md).
 
-### "jupyter-server-proxy not found"
-
-**Problem**: After installing, proxy doesn't work
-
-**Solution**:
+### Port already in use
+Override the ports:
 ```bash
-jupyter serverextension enable --py jupyter_server_proxy --sys-prefix
-jupyter serverextension list  # Verify it's enabled
+MARIMO_PORT=2728 PROXY_PORT=2729 bash start-marimo.sh
 ```
 
-### "Port already in use"
+### Session disconnected after idle time
+SageMaker spaces idle out; your files persist on the space's EBS volume. Just
+re-run `bash start-marimo.sh` after the space restarts.
 
-**Problem**: marimo won't start because port is busy
+## Next steps
 
-**Solution**: Use a different port:
-```bash
-marimo edit --host 0.0.0.0 --port 8889
-```
-
-Then access at `/proxy/8889/`
-
-## Studio Lab vs Studio: Which to Use?
-
-| Feature | Studio Lab (Free) | Studio (Paid) |
-|---------|-------------------|---------------|
-| Cost | **100% Free** | Pay per use (~$1-2/hour) |
-| AWS Account | Not required | Required |
-| Setup Time | 5 minutes | 10-30 minutes (infra setup) |
-| Compute | CPU only, 4-16 GB RAM | CPU + GPU, scalable |
-| Storage | 15 GB persistent | Unlimited (S3) |
-| Session Time | 4-12 hours | Unlimited |
-| Best For | Learning, demos, small projects | Production, team collaboration |
-
-**Recommendation**: Start with Studio Lab to learn marimo, then move to Studio for production workloads.
-
-## What Makes This Easy?
-
-1. **No Infrastructure Setup**: Both Studio and Studio Lab handle the environment
-2. **Just pip install**: marimo is a regular Python package
-3. **Built-in Proxy**: jupyter-server-proxy makes web UI access seamless
-4. **No Configuration Needed**: Works out of the box
-5. **Free Option Available**: Studio Lab requires no AWS account or credit card
-
-## Next Steps
-
-Now that marimo is running:
-
-1. ✅ Try the sample notebook above
-2. ✅ Convert an existing Jupyter notebook: `marimo convert notebook.ipynb`
-3. ✅ Build an interactive dashboard with real data
-4. ✅ Deploy as a web app: `marimo run my_notebook.py`
-5. ✅ Read the [full blog post](blog-post.md) for advanced integration with SageMaker
+1. ✅ Try the sample above
+2. ✅ Explore [sagemaker_ml_demo.py](sagemaker_ml_demo.py)
+3. ✅ Read the [blog post](blog-post.md)
+4. ✅ Read [docs.marimo.io](https://docs.marimo.io)
 
 ## Resources
 
-- **marimo docs**: https://docs.marimo.io
-- **marimo examples**: https://marimo.io/examples
-- **Studio Lab docs**: https://studiolab.sagemaker.aws/
-- **SageMaker Studio docs**: https://docs.aws.amazon.com/sagemaker/latest/dg/studio.html
-
----
-
-**Questions or issues?** Open an issue in this repo or check the marimo Discord community!
-
-Happy reactive coding! 🚀
+- marimo docs: https://docs.marimo.io
+- SageMaker Studio docs: https://docs.aws.amazon.com/sagemaker/latest/dg/studio-updated.html
+- ws-sse-proxy: https://github.com/scttfrdmn/ws-sse-proxy

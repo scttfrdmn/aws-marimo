@@ -1,97 +1,57 @@
 #!/bin/bash
-# Diagnostic script to help find the correct marimo access URL
+# Diagnose a marimo + ws-sse-proxy setup on SageMaker Studio.
+#
+# Checks that both processes are running and listening, so you can tell whether
+# a "can't connect" problem is the setup or the proxy path/URL.
+
+MARIMO_PORT=${MARIMO_PORT:-2718}
+PROXY_PORT=${PROXY_PORT:-2719}
 
 echo "================================================"
-echo "  marimo Proxy Diagnostic Tool"
+echo "  marimo / ws-sse-proxy diagnostic"
 echo "================================================"
 echo ""
 
-# Activate environment
-eval "$(conda shell.bash hook)"
-conda activate marimo-env 2>/dev/null
+echo "1) Packages"
+marimo --version 2>&1 | sed 's/^/   marimo: /' || echo "   marimo: NOT installed (pip install marimo)"
+python -c "import ws_sse_proxy" 2>/dev/null \
+    && echo "   ws-sse-proxy: installed" \
+    || echo "   ws-sse-proxy: NOT installed (pip install ws-sse-proxy)"
 
-echo "1️⃣  Checking jupyter-server-proxy installation..."
-if python -c "import jupyter_server_proxy" 2>/dev/null; then
-    echo "✅ jupyter-server-proxy is installed"
-    VERSION=$(pip show jupyter-server-proxy 2>/dev/null | grep Version | cut -d' ' -f2)
-    echo "   Version: $VERSION"
+echo ""
+echo "2) Processes"
+pgrep -f "marimo edit" >/dev/null && echo "   marimo: running" || echo "   marimo: not running"
+pgrep -f "ws-sse-proxy" >/dev/null && echo "   ws-sse-proxy: running" || echo "   ws-sse-proxy: not running"
+
+echo ""
+echo "3) Local HTTP checks"
+if curl -s "http://127.0.0.1:$MARIMO_PORT/" >/dev/null 2>&1; then
+    echo "   marimo responds on 127.0.0.1:$MARIMO_PORT"
 else
-    echo "❌ jupyter-server-proxy NOT installed"
-    echo "   Installing now..."
-    pip install jupyter-server-proxy
+    echo "   marimo NOT responding on 127.0.0.1:$MARIMO_PORT"
 fi
-
-echo ""
-echo "2️⃣  Checking Jupyter server extensions..."
-jupyter server extension list 2>/dev/null || jupyter serverextension list 2>/dev/null
-
-echo ""
-echo "3️⃣  Checking if marimo is running..."
-if pgrep -f "marimo edit" > /dev/null; then
-    echo "✅ marimo process is running"
-    PORT=$(ps aux | grep "marimo edit" | grep -o "port [0-9]*" | grep -o "[0-9]*" | head -1)
-    if [ -z "$PORT" ]; then
-        PORT="2718"
-    fi
-    echo "   Port: $PORT"
+if curl -s "http://127.0.0.1:$PROXY_PORT/" >/dev/null 2>&1; then
+    echo "   ws-sse-proxy responds on 127.0.0.1:$PROXY_PORT"
 else
-    echo "⚠️  marimo is NOT running"
-    echo "   Start it with: ~/start-marimo.sh"
+    echo "   ws-sse-proxy NOT responding on 127.0.0.1:$PROXY_PORT"
 fi
 
 echo ""
-echo "4️⃣  Checking network connections..."
-if command -v netstat > /dev/null; then
-    echo "Listening ports:"
-    netstat -tuln 2>/dev/null | grep "2718\|8888" || ss -tuln 2>/dev/null | grep "2718\|8888"
-elif command -v ss > /dev/null; then
-    echo "Listening ports:"
-    ss -tuln 2>/dev/null | grep "2718\|8888"
-fi
-
-echo ""
-echo "5️⃣  Testing proxy configuration..."
-# Check if jupyter-server-proxy config exists
-if [ -f ~/.jupyter/jupyter_server_config.py ]; then
-    echo "✅ Jupyter config exists"
-    if grep -q "server_proxy" ~/.jupyter/jupyter_server_config.py; then
-        echo "   Contains server_proxy configuration"
-    fi
-else
-    echo "⚠️  No custom jupyter config found (using defaults)"
-fi
-
-echo ""
-echo "6️⃣  Environment information..."
-echo "JUPYTER_CONFIG_DIR: ${JUPYTER_CONFIG_DIR:-not set}"
-echo "JUPYTER_DATA_DIR: ${JUPYTER_DATA_DIR:-not set}"
-echo "JUPYTER_RUNTIME_DIR: ${JUPYTER_RUNTIME_DIR:-not set}"
+echo "4) Listening ports"
+{ ss -tlnp 2>/dev/null || netstat -tln 2>/dev/null; } | grep -E ":$MARIMO_PORT|:$PROXY_PORT" \
+    || echo "   (no listeners found on $MARIMO_PORT / $PROXY_PORT)"
 
 echo ""
 echo "================================================"
-echo "  📋 Recommended URLs to Try"
+echo "  Access URL"
 echo "================================================"
 echo ""
-echo "Try these URLs in order (replace YOUR-DOMAIN):"
+echo "Open the PROXY port ($PROXY_PORT), NOT marimo's port ($MARIMO_PORT):"
 echo ""
-echo "1. https://YOUR-DOMAIN/proxy/2718/"
-echo "2. https://YOUR-DOMAIN/studiolab/default/jupyter/proxy/2718/"
-echo "3. https://YOUR-DOMAIN/jupyter/proxy/2718/"
-echo "4. https://YOUR-DOMAIN/user-redirect/proxy/2718/"
+echo "  https://<domain>.studio.<region>.sagemaker.aws/jupyterlab/default/proxy/$PROXY_PORT/"
 echo ""
-echo "Your current domain:"
-echo "  (Copy from your browser's address bar)"
+echo "  (SageMaker Unified Studio uses a different proxy base path —"
+echo "   see WEBSOCKET-STATUS.md / issue #8.)"
 echo ""
-echo "================================================"
-echo ""
-echo "If none work, try these steps:"
-echo ""
-echo "Step A: Enable jupyter-server-proxy extension"
-echo "  jupyter server extension enable jupyter_server_proxy"
-echo ""
-echo "Step B: Restart Jupyter server"
-echo "  (File → Shut Down → Restart runtime in Studio Lab)"
-echo ""
-echo "Step C: Check JupyterLab's running terminals/kernels"
-echo "  Look for a 'Proxied' section or similar in JupyterLab"
-echo ""
+echo "If marimo loads but cells won't run, that's the WebSocket 403 issue —"
+echo "make sure you started via start-marimo.sh and are on port $PROXY_PORT."

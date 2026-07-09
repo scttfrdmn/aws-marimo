@@ -1,427 +1,290 @@
-# Running marimo: The Next-Generation Python Notebook on Amazon SageMaker
+<!--
+DRAFT — for publication on an AWS channel.
+TODO(verify) markers flag every claim that needs confirmation on a live
+SageMaker Studio space before publishing. See issue #8:
+https://github.com/scttfrdmn/aws-marimo-sagemaker/issues/8
+-->
+
+# Running marimo reactive notebooks on Amazon SageMaker Studio
 
 ## Introduction
 
-For over a decade, Jupyter notebooks have been the go-to tool for data scientists and machine learning practitioners. They've enabled interactive development, iterative experimentation, and rich documentation all in one place. But if you've worked with Jupyter notebooks in production, you've likely encountered their pain points: out-of-order execution leading to hidden state bugs, merge conflicts from JSON formatting, and the notorious "works on my machine" problem when notebooks fail to reproduce.
+For over a decade, Jupyter notebooks have been the default tool for data
+scientists and ML practitioners. But anyone who has run them in earnest knows
+the pain points: out-of-order execution creating hidden-state bugs, merge
+conflicts from JSON storage, and the "works on my machine" problem when a
+notebook won't reproduce.
 
-Enter **marimo**, an open-source reactive notebook that fundamentally reimagines how notebooks work. Unlike Jupyter, marimo notebooks are reactive—when you change a variable or cell, all dependent cells automatically update. They're stored as pure Python files, making them Git-friendly and executable as scripts. And they eliminate hidden state entirely, ensuring your notebooks are always in a consistent, reproducible state.
+[marimo](https://marimo.io) is an open-source reactive notebook that rethinks
+this. Cells form a dependency graph and re-run automatically, like a
+spreadsheet; notebooks are stored as pure Python (`.py`) files, so they're
+Git-friendly and runnable as scripts; and there's no hidden state.
 
-In this post, we'll show you how to run marimo on Amazon SageMaker Studio, combining the power of AWS's managed machine learning platform with marimo's modern notebook experience. We'll provide complete infrastructure-as-code deployments using both Terraform and AWS CDK, walk through practical examples, and show you when and how to use marimo alongside your existing Jupyter workflows.
+This post shows how to run marimo on **Amazon SageMaker Studio** — including the
+one non-obvious hurdle you'll hit (interactive notebooks won't connect) and the
+small, transparent workaround that fixes it.
 
-By the end of this tutorial, you'll have a production-ready SageMaker environment with marimo support, and understand how reactive notebooks can improve your ML development workflow.
+> **Platform note.** This targets the current **SageMaker Studio** (the
+> JupyterLab experience) and **SageMaker Unified Studio**. SageMaker Studio Lab
+> is [closing to new customers on 2026-07-30](https://docs.aws.amazon.com/sagemaker/latest/dg/studio-lab-availability-change.html),
+> and Studio Classic is end-of-life, so neither is covered here.
 
-## What Makes marimo Different?
+## What makes marimo different?
 
-### The Problem with Traditional Notebooks
+**Reactive execution.** Change a cell and marimo re-runs exactly the cells that
+depend on it, in the right order:
 
-Research shows that approximately 75% of Jupyter notebooks on GitHub don't run, and 96% don't reproduce the claimed results. Why? The culprit is hidden state. In Jupyter, you can execute cells out of order, creating dependencies that aren't visible in the linear notebook structure. A notebook might appear to work, but when you restart the kernel and run from top to bottom, it fails.
-
-Additionally, Jupyter notebooks are stored as JSON files containing outputs, metadata, and execution counts. This makes version control painful—merge conflicts are common, and diffs are nearly impossible to read. For teams practicing MLOps and requiring reproducible research, these limitations are significant obstacles.
-
-### How marimo Solves These Problems
-
-**1. Reactive Execution**
-
-marimo uses a reactive programming model similar to spreadsheets or modern frontend frameworks. When you modify a cell, marimo automatically determines which cells depend on that change and re-executes them in the correct order. This eliminates hidden state and ensures your notebook is always in a consistent state.
-
-```python
-# In marimo, this automatically updates when slider changes
-slider = mo.ui.slider(0, 100, value=50)
-result = expensive_computation(slider.value)  # Auto-recomputes
-mo.md(f"Result: {result}")  # Auto-updates display
-```
-
-**2. Stored as Pure Python**
-
-marimo notebooks are saved as `.py` files with a simple, readable structure. This means:
-- Clean Git diffs showing only code changes
-- No merge conflicts from execution counts or outputs
-- Execute notebooks as Python scripts: `python notebook.py`
-- Import notebooks as modules in other projects
-- Full compatibility with AI coding assistants like Claude Code and GitHub Copilot
-
-**3. Three Tools in One**
-
-A single marimo file can serve as:
-- An interactive notebook for development
-- A Python script that runs from the command line
-- A web application deployed with `marimo run notebook.py`
-
-This eliminates the need to maintain separate notebook and production code, a common source of bugs in ML projects.
-
-**4. Built-in Interactivity**
-
-marimo includes rich UI components that work without callbacks:
 ```python
 import marimo as mo
 
-# Create interactive elements
-dropdown = mo.ui.dropdown(['model-a', 'model-b', 'model-c'])
-table = mo.ui.table(dataframe)  # Interactive, sortable, filterable
-plot = mo.ui.plotly(figure)  # Fully interactive visualizations
+slider = mo.ui.slider(0, 100, value=50)
+result = expensive_computation(slider.value)  # auto-recomputes
+mo.md(f"Result: {result}")                     # auto-updates
 ```
 
-### Important: Python-Only Platform
+**Stored as pure Python.** Clean Git diffs, no merge conflicts from execution
+counts or embedded outputs, and the same file runs as a script (`python
+notebook.py`), imports as a module, and deploys as an app (`marimo run
+notebook.py`).
 
-Unlike Jupyter's multi-kernel architecture that supports R, Julia, Scala, and other languages, **marimo is exclusively a Python notebook platform**. This design choice enables marimo's deep Python integration—notebooks are pure `.py` files that can be executed as scripts, imported as modules, and work seamlessly with Python tooling.
+**No hidden state.** Restart-and-run-all is the *only* state, so notebooks
+reproduce.
 
-If your workflow requires R, Julia, or other languages, you'll need to continue using Jupyter for those notebooks. However, for Python-focused ML and data science work (which represents the vast majority of SageMaker use cases), marimo's Python-native design provides significant advantages in reproducibility and developer experience.
+**Built-in interactivity** with no callbacks — `mo.ui.slider`, `mo.ui.table`,
+`mo.ui.plotly`, and more.
 
-The good news: marimo and Jupyter can coexist in the same SageMaker environment, so you can use marimo for Python workflows while keeping Jupyter available for multi-language projects.
+> marimo is a **Python-only** platform (no R/Julia kernels). For multi-language
+> work, keep Jupyter around — the two coexist happily in the same space.
 
-## Why marimo on SageMaker?
+## Why marimo on SageMaker Studio?
 
-Combining marimo with Amazon SageMaker gives you:
+- **Managed infrastructure** — no servers or Jupyter installs to babysit.
+- **Scalable compute** — CPU/GPU instances, on demand, per space.
+- **Native AWS access** — the space's execution role means `boto3` just works
+  against SageMaker training jobs, endpoints, S3, and more.
+- **Reproducible + Git-friendly** — marimo's `.py` format fits MLOps.
 
-- **Managed Infrastructure**: No need to manage servers, Jupyter installations, or dependencies
-- **Scalable Compute**: Access to GPUs, large memory instances, and distributed training
-- **SageMaker Integration**: Direct access to SageMaker training jobs, endpoints, Feature Store, and Model Registry
-- **Team Collaboration**: Shared environments with consistent configurations
-- **Security and Compliance**: VPC isolation, IAM roles, and audit logging
-- **Cost Optimization**: Pay only for compute you use, with automatic scaling
+## The hurdle: notebooks won't connect
 
-marimo's lightweight architecture makes it perfect for SageMaker—it runs efficiently on the JupyterServer instance without requiring expensive compute for the interface itself.
+Here's the part that trips everyone up, and why a plain `pip install marimo`
+isn't enough on SageMaker.
 
-## Architecture Overview
-
-Our deployment creates a complete SageMaker Studio environment with marimo support:
-
-```
-┌─────────────────────────────────────────────┐
-│     SageMaker Studio Domain                 │
-│  ┌───────────────────────────────────────┐  │
-│  │  JupyterLab Environment               │  │
-│  │  ┌─────────────────────────────────┐  │  │
-│  │  │ jupyter-server-proxy            │  │  │
-│  │  │         ↓                        │  │  │
-│  │  │ marimo server (port 8888)       │  │  │
-│  │  └─────────────────────────────────┘  │  │
-│  └───────────────────────────────────────┘  │
-│                                             │
-│  Lifecycle Configuration:                   │
-│  - Install marimo                           │
-│  - Configure proxy                          │
-│  - Setup helper scripts                     │
-└─────────────────────────────────────────────┘
-         │
-         ├─→ S3 (notebooks, data, artifacts)
-         ├─→ VPC (secure networking)
-         └─→ IAM (permissions)
-```
-
-**Key Components:**
-
-1. **SageMaker Studio Domain**: Your team's workspace with user profiles and shared settings
-2. **Lifecycle Configuration**: Automatically installs marimo and jupyter-server-proxy when JupyterServer starts
-3. **jupyter-server-proxy**: Enables accessing marimo's web UI through SageMaker's proxy system
-4. **VPC Configuration**: Secure networking with private subnets and security groups
-5. **IAM Roles**: Appropriate permissions for SageMaker operations and AWS service access
-
-## Deployment
-
-> **Status note:** The Terraform and CDK deployments described below are the
-> *intended architecture* and are on the project roadmap. They are not yet
-> included in the repository. For a working setup today, use the manual or
-> bootstrap install on Studio Lab / Studio (see the project README and
-> QUICKSTART).
-
-The plan is to provide two deployment options: Terraform and AWS CDK. Both create identical infrastructure—choose based on your team's preferences.
-
-### Option 1: Terraform Deployment
+Install marimo, start it, and open it through the JupyterLab proxy:
 
 ```bash
-cd terraform
-terraform init
-terraform plan -out=tfplan
-terraform apply tfplan
+pip install marimo jupyter-server-proxy
+marimo edit --headless --no-token --port 2718
 ```
 
-This creates:
-- SageMaker Studio Domain and user profile
-- VPC with public and private subnets
-- Security groups with appropriate rules
-- IAM execution role with necessary permissions
-- Lifecycle configuration for marimo installation
-- S3 bucket for artifacts and sample notebooks
+The marimo home page and file browser load fine. But **create a notebook and it
+hangs at "connecting," with blank cells.** In the marimo server log you'll see:
 
-After deployment, Terraform outputs the Studio domain URL and other useful information.
+```
+INFO:     ("WebSocket /ws" 403)
+INFO:     connection rejected (403 Forbidden)
+INFO:     connection closed
+```
 
-### Option 2: AWS CDK Deployment
+### Root cause
+
+marimo needs a WebSocket for cell execution and reactive updates. It sets a
+**session cookie** on the initial HTTP request and requires that cookie on the
+subsequent WebSocket upgrade to `/ws`. **SageMaker's JupyterLab proxy does not
+forward that cookie**, so marimo rejects the handshake with **HTTP 403**. (In
+the browser console this shows up as a WebSocket closing with code 1006, but
+the real cause is the 403 rejection at the proxy layer.)
+
+This is a known, still-open issue upstream —
+[marimo-jupyter-extension #8](https://github.com/marimo-team/marimo-jupyter-extension/issues/8) —
+independently reproduced by several people on real SageMaker Studio.
+
+<!-- TODO(verify): reproduce the 403 baseline on a live Studio space with
+     marimo 0.23.x and capture the log + browser console for the post. -->
+
+## The fix: ws-sse-proxy
+
+[ws-sse-proxy](https://github.com/scttfrdmn/ws-sse-proxy) is a small, generic
+reverse proxy (on PyPI, MIT-licensed) that sits in front of marimo and
+translates WebSocket traffic to Server-Sent Events + HTTP POST — the transports
+that *do* survive the SageMaker proxy.
+
+The key idea: **ws-sse-proxy opens the WebSocket to marimo over localhost**,
+inside your space, where the session cookie and origin are intact. marimo
+accepts that handshake. Only plain HTTP and SSE cross the SageMaker proxy.
+
+```
+Browser ── /jupyterlab/default/proxy/2719/ ──▶ ws-sse-proxy (:2719)
+              (HTTP + SSE only)                      │
+                                                     │ WebSocket over localhost
+                                                     ▼ (cookie intact)
+                                              marimo (127.0.0.1:2718)
+```
+
+Your notebook needs no changes. The proxy injects a tiny JavaScript shim that
+tries a real WebSocket first (so it's a no-op where WebSocket already works) and
+falls back to SSE when it doesn't.
+
+<!-- TODO(verify): confirm the shim's fallback actually engages against the 403
+     handshake rejection (its documented trigger is close code 1006 / stall).
+     This is the single make-or-break check. Issue #8. -->
+
+## Step-by-step
+
+### 1. Open a JupyterLab terminal
+
+In SageMaker Studio, launch a **JupyterLab** space and open a terminal.
+
+### 2. Install marimo and the shim
 
 ```bash
-cd cdk
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-cdk deploy
+pip install marimo ws-sse-proxy
 ```
 
-The CDK stack provides the same infrastructure with the added benefit of type checking and the ability to easily extend with additional AWS constructs.
-
-## Getting Started with marimo on SageMaker
-
-### Step 1: Access SageMaker Studio
-
-After deployment, navigate to the SageMaker Console and open Studio using the domain URL from your deployment outputs. When JupyterServer starts, the lifecycle configuration automatically installs marimo and configures the proxy.
-
-### Step 2: Start the marimo Server
-
-Open a terminal in JupyterLab and run:
+### 3. Start marimo behind the proxy
 
 ```bash
-./start-marimo.sh
+curl -fsSL https://raw.githubusercontent.com/scttfrdmn/aws-marimo-sagemaker/main/start-marimo.sh -o start-marimo.sh
+bash start-marimo.sh
 ```
 
-This helper script (created by the lifecycle configuration) starts the marimo server on port 8888.
+`start-marimo.sh` runs marimo on `127.0.0.1:2718` (localhost only) and
+ws-sse-proxy on `2719`.
 
-### Step 3: Access the marimo UI
+### 4. Open the UI at the proxy port
 
-Navigate to:
+Copy your JupyterLab URL and swap the path to hit **port 2719**:
+
 ```
-https://<your-domain>.studio.<region>.sagemaker.aws/jupyter/default/proxy/8888/
+https://<domain>.studio.<region>.sagemaker.aws/jupyterlab/default/proxy/2719/
 ```
 
-You'll see the marimo editor interface, ready to create or open notebooks.
+<!-- TODO(verify): confirm the exact proxy base path on standalone SageMaker
+     Studio vs SageMaker Unified Studio — they differ. Issue #8. -->
 
-### Step 4: Create Your First Notebook
+Cells now execute and reactive updates work.
 
-In the terminal:
+<!-- TODO(verify): screenshot of a working reactive notebook (slider updating a
+     plot) on the live space, for the post. -->
+
+### Optional: make it persistent with a lifecycle configuration
+
+So you don't reinstall every session, attach a JupyterLab lifecycle
+configuration that installs marimo + ws-sse-proxy:
+
 ```bash
-cd marimo-notebooks
-marimo edit my_analysis.py
+LCC_CONTENT=$(base64 < lifecycle-config/install-marimo.sh)
+aws sagemaker create-studio-lifecycle-config \
+    --studio-lifecycle-config-name marimo-setup \
+    --studio-lifecycle-config-app-type JupyterLab \
+    --studio-lifecycle-config-content "$LCC_CONTENT"
 ```
 
-Or create a new notebook from the marimo UI.
+Then attach it to your domain, user profile, or space and select it at launch.
+(The app type is `JupyterLab` for the current Studio JupyterLab app; Studio
+Classic used `JupyterServer`.)
 
-## Practical Examples
+<!-- TODO(verify): confirm LCC attach + startup on a live space. Issue #8. -->
 
-### Example 1: Interactive Data Exploration
+## Practical examples
 
-One of marimo's killer features is effortless interactivity. Here's a complete example that lets you filter and visualize data reactively:
+### Interactive data exploration
 
 ```python
 import marimo as mo
 import pandas as pd
 import plotly.express as px
 
-# Load sample data
-df = pd.read_csv('s3://your-bucket/data.csv')
+df = pd.read_csv("s3://your-bucket/data.csv")
 
-# Create interactive filter
-min_value = mo.ui.slider(
-    start=df['price'].min(),
-    stop=df['price'].max(),
-    value=df['price'].median(),
-    label="Minimum Price"
+min_price = mo.ui.slider(
+    start=df["price"].min(), stop=df["price"].max(),
+    value=df["price"].median(), label="Minimum price",
 )
 
-# Filter data (automatically updates when slider changes)
-filtered_df = df[df['price'] >= min_value.value]
-
-# Display results
-mo.md(f"Showing {len(filtered_df)} of {len(df)} items")
-mo.ui.table(filtered_df)
-
-# Plot (automatically updates)
-fig = px.histogram(filtered_df, x='price', nbins=50)
-mo.ui.plotly(fig)
+filtered = df[df["price"] >= min_price.value]   # recomputes on slider move
+mo.md(f"Showing {len(filtered)} of {len(df)} items")
+mo.ui.table(filtered)
+mo.ui.plotly(px.histogram(filtered, x="price", nbins=50))
 ```
 
-When you move the slider, everything updates automatically—the filtered dataframe, the count, the table, and the plot. No callbacks, no manual re-execution needed.
+Move the slider and the count, table, and plot all update — no callbacks, no
+manual re-run.
 
-### Example 2: SageMaker Training Job Monitor
-
-marimo integrates seamlessly with AWS services. Here's a reactive dashboard for monitoring SageMaker training jobs:
+### A SageMaker training-job monitor
 
 ```python
 import marimo as mo
-import boto3
-import pandas as pd
-from datetime import datetime
+import boto3, pandas as pd
 
-# Initialize SageMaker client
-sagemaker = boto3.client('sagemaker')
+sagemaker = boto3.client("sagemaker")
+jobs = [j["TrainingJobName"]
+        for j in sagemaker.list_training_jobs(MaxResults=20)["TrainingJobSummaries"]]
 
-# List training jobs
-response = sagemaker.list_training_jobs(MaxResults=20)
-job_names = [job['TrainingJobName'] for job in response['TrainingJobSummaries']]
+selected = mo.ui.dropdown(options=jobs, value=jobs[0] if jobs else None,
+                          label="Training job")
 
-# Interactive job selector
-selected_job = mo.ui.dropdown(
-    options=job_names,
-    value=job_names[0] if job_names else None,
-    label="Select Training Job"
-)
-
-# Get job details (automatically updates when selection changes)
-if selected_job.value:
-    job_details = sagemaker.describe_training_job(
-        TrainingJobName=selected_job.value
-    )
-
-    # Display key metrics
+if selected.value:
+    d = sagemaker.describe_training_job(TrainingJobName=selected.value)
     mo.md(f"""
-    ## Training Job: {selected_job.value}
-
-    - **Status**: {job_details['TrainingJobStatus']}
-    - **Instance Type**: {job_details['ResourceConfig']['InstanceType']}
-    - **Instance Count**: {job_details['ResourceConfig']['InstanceCount']}
-    - **Training Time**: {job_details.get('TrainingTimeInSeconds', 0)} seconds
+    ## {selected.value}
+    - **Status**: {d['TrainingJobStatus']}
+    - **Instance**: {d['ResourceConfig']['InstanceType']} × {d['ResourceConfig']['InstanceCount']}
+    - **Training time**: {d.get('TrainingTimeInSeconds', 0)} s
     """)
-
-    # Show hyperparameters
-    mo.ui.table(pd.DataFrame([job_details['HyperParameters']]))
+    mo.ui.table(pd.DataFrame([d["HyperParameters"]]))
 ```
 
-### Example 3: Converting Existing Jupyter Notebooks
-
-Already have Jupyter notebooks? Convert them to marimo:
+### Converting existing Jupyter notebooks
 
 ```bash
 marimo convert analysis.ipynb -o analysis.py
 ```
 
-marimo does its best to handle the conversion, and you can then refine the reactive structure.
+## marimo vs. Jupyter: when to use each
 
-## marimo vs. Jupyter: When to Use Each
+**marimo** for interactive apps/dashboards, reproducible research, Git-tracked
+collaboration, and reusable pipelines. **Jupyter** for quick ad-hoc
+exploration, multi-language kernels, or heavy investment in Jupyter extensions.
+They convert back and forth — use both.
 
-Both tools have their place in your ML workflow:
+## What works where
 
-**Use marimo when:**
-- ✅ Building interactive dashboards and applications
-- ✅ Creating reproducible research that must run top-to-bottom
-- ✅ Working collaboratively with Git version control
-- ✅ Creating reusable modules or production pipelines
-- ✅ You want reactive, automatic updates
-- ✅ Sharing notebooks that others need to run reliably
+| Capability | Local | SageMaker Studio (via shim) |
+|---|---|---|
+| HTTP / file browser | ✅ | ✅ |
+| Cell execution (WebSocket) | ✅ | ⚠️ via ws-sse-proxy <!-- TODO(verify) --> |
+| Reactive updates | ✅ | ⚠️ via ws-sse-proxy <!-- TODO(verify) --> |
+| UI widgets | ✅ | ⚠️ via ws-sse-proxy <!-- TODO(verify) --> |
+| `marimo run` app mode | ✅ | ⚠️ via ws-sse-proxy <!-- TODO(verify) --> |
+| WASM export (no server) | ✅ | ✅ |
 
-**Use Jupyter when:**
-- ✅ Doing quick, ad-hoc exploration
-- ✅ Using SageMaker-specific notebook features
-- ✅ Your team has heavy investment in Jupyter extensions
-- ✅ You need specific Jupyter widgets or integrations
-- ✅ Experimenting where order of execution doesn't matter
+## Alternative: WASM export
 
-**Best practice**: Use both! Each has strengths, and you can convert between formats as needed.
-
-## Best Practices
-
-### 1. Version Control
-
-Because marimo notebooks are Python files, version control is straightforward:
+For static or shareable notebooks that don't need space-local resources, marimo
+can run entirely in the browser via WebAssembly — no server, no WebSocket, no
+proxy:
 
 ```bash
-git add my_notebook.py
-git commit -m "Add data analysis notebook"
-git push
-```
-
-Git diffs show exactly what changed in your code, not JSON metadata.
-
-### 2. Team Deployment
-
-Use lifecycle configurations to ensure all team members have consistent environments:
-
-```bash
-#!/bin/bash
-pip install marimo==0.9.0  # Pin specific version
-pip install jupyter-server-proxy
-# Install team-specific packages
-pip install -r /home/sagemaker-user/requirements.txt
-```
-
-### 3. Resource Management
-
-marimo's server runs on JupyterServer (system instance, minimal cost). Heavy computation should use:
-- Kernel Gateway instances (for interactive work)
-- SageMaker Training Jobs (for large-scale training)
-- SageMaker Processing Jobs (for data processing)
-
-This separation keeps costs down while providing access to powerful compute when needed.
-
-### 4. Running as Scripts
-
-marimo notebooks can execute as Python scripts in CI/CD pipelines:
-
-```yaml
-# GitHub Actions
-- name: Test notebooks
-  run: |
-    python analysis.py
-    python training_pipeline.py
-```
-
-This ensures your notebooks stay executable and reproducible.
-
-## Cost Considerations
-
-Running marimo on SageMaker is cost-effective:
-
-- **JupyterServer**: ~$0.05/hour (system instance type)
-- **Kernel Gateway**: Varies by instance type (ml.t3.medium ~$0.05/hour, GPU instances more)
-- **S3 Storage**: Standard S3 pricing (~$0.023/GB/month)
-- **Data Transfer**: Minimal within same region
-
-marimo's lightweight architecture means you're not paying for heavy notebook infrastructure—just the compute you actually need.
-
-## Troubleshooting
-
-**Issue: Can't access marimo UI**
-```bash
-# Verify jupyter-server-proxy is enabled
-jupyter serverextension list
-# Should show jupyter_server_proxy enabled and validated
-```
-
-**Issue: Lifecycle configuration didn't run**
-- Check CloudWatch logs at `/aws/sagemaker/studio`
-- Verify IAM permissions allow lifecycle config execution
-- Ensure lifecycle config is attached to user profile
-
-**Issue: Packages missing**
-```bash
-# Install in JupyterServer terminal
-pip install package-name
-# Or add to lifecycle configuration for permanent installation
+marimo export html-wasm notebook.py -o out/
 ```
 
 ## Conclusion
 
-marimo brings modern reactive programming to Amazon SageMaker, enabling truly reproducible notebooks that integrate seamlessly with AWS's ML platform. By combining marimo's reactive execution, Git-friendly format, and built-in interactivity with SageMaker's managed infrastructure and powerful compute, you get the best of both worlds: rapid interactive development and production-ready, reproducible code.
-
-Whether you're exploring data, training models, or building ML pipelines, this combination provides powerful tools for every stage of the ML lifecycle. The reactive model eliminates hidden state bugs, the Python file format enables proper version control, and the SageMaker integration gives you access to scalable compute and managed services.
-
-### Next Steps
-
-1. **Deploy**: Use the provided Terraform or CDK code to set up your environment
-2. **Experiment**: Try the sample notebooks and convert an existing Jupyter notebook
-3. **Integrate**: Connect marimo notebooks with your SageMaker training jobs and endpoints
-4. **Share**: Commit your marimo notebooks to Git and share with your team
-5. **Explore**: Check out marimo's documentation for advanced features
+marimo brings reactive, reproducible, Git-friendly notebooks to SageMaker
+Studio. The one gotcha — the WebSocket 403 from the proxy stripping marimo's
+session cookie — is real but small, and ws-sse-proxy closes the gap
+transparently until marimo ships native SageMaker support
+([track it here](https://github.com/marimo-team/marimo-jupyter-extension/issues/8)).
 
 ### Resources
 
-- **marimo Documentation**: https://docs.marimo.io
-- **marimo GitHub**: https://github.com/marimo-team/marimo
-- **SageMaker Studio Guide**: https://docs.aws.amazon.com/sagemaker/latest/dg/studio.html
-- **Sample Code Repository**: [Your GitHub repo with Terraform/CDK code]
-
-### Cleanup
-
-When you're done experimenting, clean up resources to avoid charges:
-
-```bash
-# Terraform
-terraform destroy
-
-# CDK
-cdk destroy
-```
-
-The future of notebooks is reactive, reproducible, and Git-friendly. With marimo on SageMaker, that future is available today. Happy coding!
+- marimo docs: https://docs.marimo.io
+- ws-sse-proxy: https://github.com/scttfrdmn/ws-sse-proxy
+- Setup repo (scripts + this post): https://github.com/scttfrdmn/aws-marimo-sagemaker
+- SageMaker Studio: https://docs.aws.amazon.com/sagemaker/latest/dg/studio-updated.html
 
 ---
 
-*About the Author: [Your bio here]*
-
-*Special thanks to the marimo team for building an amazing tool, and to the AWS SageMaker team for creating such a flexible ML platform.*
+*Thanks to the marimo team, and to the contributors on
+[marimo-jupyter-extension #8](https://github.com/marimo-team/marimo-jupyter-extension/issues/8)
+who pinned down the SageMaker cookie/403 root cause.*

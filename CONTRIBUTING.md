@@ -14,7 +14,7 @@ If you find a bug, please open an issue with:
 - Clear description of the problem
 - Steps to reproduce
 - Expected vs actual behavior
-- Environment details (Studio Lab/Studio, Python version, etc.)
+- Environment details (SageMaker Studio / Unified Studio, marimo & ws-sse-proxy versions, Python version)
 
 ### Suggesting Enhancements
 
@@ -37,8 +37,8 @@ Open an issue describing:
    - Update documentation
 
 4. **Test your changes**
-   - Test on SageMaker Studio Lab if possible
-   - Ensure bootstrap script works
+   - Test on SageMaker Studio (JupyterLab) if possible
+   - Ensure `start-marimo.sh` launches marimo + ws-sse-proxy
    - Verify demo notebooks run
 
 5. **Commit your changes**
@@ -80,30 +80,32 @@ uv pip install marimo pandas numpy boto3 plotly scikit-learn
 uv run --with marimo marimo edit sagemaker_ml_demo.py
 ```
 
-### Testing on Studio Lab
+### Testing on SageMaker Studio
 
-1. Fork the repository
-2. Update bootstrap.sh with your fork URL
-3. Test the bootstrap process:
-   ```bash
-   curl -fsSL https://raw.githubusercontent.com/YOUR_USERNAME/aws-marimo-sagemaker/main/bootstrap.sh | bash
-   ```
+1. Open a JupyterLab space in SageMaker Studio (or Unified Studio).
+2. Install: `pip install marimo ws-sse-proxy`.
+3. Run `bash start-marimo.sh` and open the proxy port `2719` — confirm cells execute.
 
 ## Project Structure
 
 ```
 aws-marimo-sagemaker/
-├── sagemaker_ml_demo.py      # Main demo notebook
-├── bootstrap.sh              # One-command setup
-├── studio-lab-setup.sh       # Setup script
+├── start-marimo.sh           # Launch marimo + ws-sse-proxy
+├── upgrade-marimo.sh         # Upgrade marimo + ws-sse-proxy
+├── uninstall.sh              # Remove the local setup
+├── diagnose-proxy.sh         # Troubleshoot proxy/access
+├── lifecycle-config/
+│   └── install-marimo.sh     # Persistent install via JupyterLab LCC
+├── sagemaker_ml_demo.py      # ML workflow demo
+├── marimo-demo.py            # Simple reactive demo
 ├── README.md                 # Main documentation
-├── QUICKSTART.md            # Quick start guide
-├── BOOTSTRAP.md             # Bootstrap documentation
-├── blog-post.md             # Comprehensive guide
-├── CHANGELOG.md             # Version history
-├── CONTRIBUTING.md          # This file
-├── LICENSE                  # MIT License
-└── VERSION                  # Semver version
+├── QUICKSTART.md             # Quick start guide
+├── WEBSOCKET-STATUS.md       # Root cause + workaround
+├── blog-post.md              # Long-form write-up
+├── CHANGELOG.md              # Version history
+├── CONTRIBUTING.md           # This file
+├── LICENSE                   # MIT License
+└── VERSION                   # Semver version
 ```
 
 ## Documentation
@@ -147,8 +149,8 @@ Update VERSION file and CHANGELOG.md when releasing.
 
 Before submitting a PR:
 - [ ] Code runs without errors
-- [ ] Demo notebook works on Studio Lab
-- [ ] Bootstrap script completes successfully
+- [ ] Demo notebook works on SageMaker Studio (via `start-marimo.sh`)
+- [ ] `start-marimo.sh` launches marimo + ws-sse-proxy cleanly
 - [ ] Documentation is updated
 - [ ] CHANGELOG.md is updated
 - [ ] Commit messages are clear
