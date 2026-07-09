@@ -45,9 +45,10 @@ curl -s "http://127.0.0.1:$PROXY_PORT/" >/dev/null 2>&1 \
 
 echo ""
 echo "[3] Does marimo accept a direct localhost WebSocket? (the premise)"
-# Python check: open a WS to marimo on localhost with Origin: http://localhost,
-# exactly as the proxy does. If this succeeds, marimo is not blocking on cookie
-# for a localhost/origin-clean client.
+# marimo's /ws requires a session_id query param (verified: without it -> 403,
+# regardless of Origin/cookie). A real browser client always supplies one, so we
+# do too here. If this succeeds, marimo is reachable and the shim just needs to
+# forward session_id (which it does, via the query string).
 python - "$MARIMO_PORT" <<'PY'
 import sys, asyncio
 port = sys.argv[1]
@@ -57,15 +58,14 @@ async def main():
     except ImportError:
         print("  WARN: 'websockets' not importable standalone; it ships with ws-sse-proxy")
         return 2
-    url = f"ws://127.0.0.1:{port}/ws"
+    url = f"ws://127.0.0.1:{port}/ws?session_id=s_verify01&file=__new__"
     try:
-        async with websockets.connect(url, additional_headers={"Origin":"http://localhost"}, open_timeout=5) as ws:
-            print(f"  PASS: marimo accepted localhost WebSocket at {url}")
+        async with websockets.connect(url, open_timeout=5) as ws:
+            print(f"  PASS: marimo accepted localhost WebSocket (with session_id)")
             return 0
     except Exception as e:
-        print(f"  FAIL: marimo REJECTED localhost WebSocket: {type(e).__name__}: {e}")
-        print("        -> If this is a 403, marimo requires the session cookie even")
-        print("           on localhost; ws-sse-proxy must forward it. (diagnose-only)")
+        print(f"  FAIL: marimo REJECTED localhost WebSocket even with session_id: {type(e).__name__}: {e}")
+        print("        -> deeper than session_id; run test/diagnose-403.sh")
         return 1
 sys.exit(asyncio.run(main()))
 PY
@@ -74,10 +74,11 @@ rc=$?
 
 echo ""
 echo "[4] MAKE-OR-BREAK: does the proxy's SSE bridge connect to marimo?"
-# Hit the proxy's SSE endpoint the way the browser shim does. A 200 text/event-stream
-# that stays open == the bridge opened a WS to marimo successfully. A 502 == marimo
-# rejected the proxy's localhost WS (cookie-based 403). We read for 3s then stop.
-SSE_URL="http://127.0.0.1:$PROXY_PORT/__wss/events?__wss_id=verify1&__wss_path=%2Fws"
+# Hit the proxy's SSE endpoint the way the browser shim does — INCLUDING the
+# session_id query param that marimo requires (the shim forwards the real WS
+# query string; a real browser always has one). 200 text/event-stream == the
+# bridge opened a WS to marimo successfully. 502 == marimo rejected it.
+SSE_URL="http://127.0.0.1:$PROXY_PORT/__wss/events?session_id=s_verify01&file=__new__&__wss_id=verify1&__wss_path=%2Fws"
 hdrs=$(curl -s -m 3 -D - -o /dev/null -H "Accept: text/event-stream" "$SSE_URL" 2>/dev/null || true)
 code=$(printf '%s' "$hdrs" | awk 'NR==1{print $2}')
 ctype=$(printf '%s' "$hdrs" | tr -d '\r' | awk -F': ' 'tolower($1)=="content-type"{print $2}')
