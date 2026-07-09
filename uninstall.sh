@@ -10,7 +10,7 @@ echo "================================================"
 echo ""
 echo "This will remove:"
 echo "  • marimo-env conda environment"
-echo "  • ~/aws-marimo repository"
+echo "  • ~/aws-marimo-sagemaker repository"
 echo "  • Helper scripts (start-marimo.sh, upgrade-marimo.sh, update-marimo.sh)"
 echo "  • Configuration files (marimo-environment.yml, marimo-requirements.txt)"
 echo "  • Demo notebooks (marimo-demo.py)"
@@ -52,9 +52,9 @@ fi
 
 # Step 3: Remove repository
 echo ""
-echo "3️⃣  Removing ~/aws-marimo repository..."
-if [ -d ~/aws-marimo ]; then
-    rm -rf ~/aws-marimo
+echo "3️⃣  Removing ~/aws-marimo-sagemaker repository..."
+if [ -d ~/aws-marimo-sagemaker ]; then
+    rm -rf ~/aws-marimo-sagemaker
     echo "✅ Repository removed"
 else
     echo "⚠️  Repository not found (already removed?)"
@@ -127,7 +127,7 @@ echo ""
 echo "All marimo components have been removed."
 echo ""
 echo "If you want to reinstall later, run:"
-echo "  curl -fsSL https://raw.githubusercontent.com/scttfrdmn/aws-marimo/main/bootstrap.sh | bash"
+echo "  curl -fsSL https://raw.githubusercontent.com/scttfrdmn/aws-marimo-sagemaker/main/bootstrap.sh | bash"
 echo ""
 echo "Note: Your ~/.bashrc backup is at ~/.bashrc.marimo-backup"
 echo ""

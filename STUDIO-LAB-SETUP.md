@@ -6,7 +6,7 @@ This guide provides an automated setup script that combines conda environments w
 
 ```bash
 # 1. Download the setup script
-curl -O https://raw.githubusercontent.com/YOUR_USERNAME/aws-marimo/main/studio-lab-setup.sh
+curl -O https://raw.githubusercontent.com/scttfrdmn/aws-marimo-sagemaker/main/studio-lab-setup.sh
 
 # 2. Make it executable
 chmod +x studio-lab-setup.sh
@@ -207,8 +207,8 @@ After setup, try the complete SageMaker ML demo:
 ```bash
 # Clone the repo (if not already done)
 cd ~
-git clone https://github.com/YOUR_USERNAME/aws-marimo.git
-cd aws-marimo
+git clone https://github.com/scttfrdmn/aws-marimo-sagemaker.git
+cd aws-marimo-sagemaker
 
 # Run the demo
 marimo edit sagemaker_ml_demo.py

@@ -3,9 +3,9 @@
 # Run this each time you start a new Studio Lab session
 
 # Auto-update from GitHub (if repo exists)
-if [ -d ~/aws-marimo ]; then
+if [ -d ~/aws-marimo-sagemaker ]; then
     echo "🔄 Checking for repository updates..."
-    cd ~/aws-marimo
+    cd ~/aws-marimo-sagemaker
     git fetch origin main --quiet 2>/dev/null || true
     LOCAL=$(git rev-parse HEAD 2>/dev/null)
     REMOTE=$(git rev-parse origin/main 2>/dev/null)
@@ -27,7 +27,7 @@ conda activate marimo-env
 
 # Check if marimo is available
 if ! command -v marimo &> /dev/null; then
-    echo "❌ marimo not found. Run ~/aws-marimo/studio-lab-setup.sh first"
+    echo "❌ marimo not found. Run ~/aws-marimo-sagemaker/studio-lab-setup.sh first"
     exit 1
 fi
 

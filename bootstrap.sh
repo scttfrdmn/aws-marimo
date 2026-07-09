@@ -1,6 +1,6 @@
 #!/bin/bash
 # One-Command Bootstrap for SageMaker Studio Lab
-# Run this: curl -fsSL https://raw.githubusercontent.com/scttfrdmn/aws-marimo/main/bootstrap.sh | bash
+# Run this: curl -fsSL https://raw.githubusercontent.com/scttfrdmn/aws-marimo-sagemaker/main/bootstrap.sh | bash
 
 set -e
 
@@ -10,8 +10,8 @@ echo "================================================"
 echo ""
 
 # Configuration
-REPO_URL="https://github.com/scttfrdmn/aws-marimo.git"
-REPO_DIR=~/aws-marimo
+REPO_URL="https://github.com/scttfrdmn/aws-marimo-sagemaker.git"
+REPO_DIR=~/aws-marimo-sagemaker
 ENV_NAME="marimo-env"
 
 # Step 1: Clone or update the repository
@@ -45,9 +45,9 @@ cat > ~/update-marimo.sh << 'EOFUPDATE'
 #!/bin/bash
 # Auto-update marimo setup from GitHub
 
-REPO_DIR=~/aws-marimo
+REPO_DIR=~/aws-marimo-sagemaker
 
-echo "🔄 Updating aws-marimo from GitHub..."
+echo "🔄 Updating aws-marimo-sagemaker from GitHub..."
 cd "$REPO_DIR"
 git pull origin main
 
@@ -74,7 +74,7 @@ echo "To start marimo:"
 echo "  ~/start-marimo.sh"
 echo ""
 echo "To try the demos:"
-echo "  marimo edit ~/aws-marimo/sagemaker_ml_demo.py"
+echo "  marimo edit ~/aws-marimo-sagemaker/sagemaker_ml_demo.py"
 echo "  marimo edit ~/marimo-demo.py"
 echo ""
 echo "To update from GitHub:"

@@ -1,6 +1,6 @@
-# Contributing to aws-marimo
+# Contributing to aws-marimo-sagemaker
 
-Thank you for your interest in contributing to aws-marimo! This document provides guidelines for contributing to the project.
+Thank you for your interest in contributing to aws-marimo-sagemaker! This document provides guidelines for contributing to the project.
 
 ## Code of Conduct
 
@@ -69,8 +69,8 @@ Open an issue describing:
 
 ```bash
 # Clone your fork
-git clone https://github.com/YOUR_USERNAME/aws-marimo.git
-cd aws-marimo
+git clone https://github.com/YOUR_USERNAME/aws-marimo-sagemaker.git
+cd aws-marimo-sagemaker
 
 # Create virtual environment
 uv venv
@@ -86,13 +86,13 @@ uv run --with marimo marimo edit sagemaker_ml_demo.py
 2. Update bootstrap.sh with your fork URL
 3. Test the bootstrap process:
    ```bash
-   curl -fsSL https://raw.githubusercontent.com/YOUR_USERNAME/aws-marimo/main/bootstrap.sh | bash
+   curl -fsSL https://raw.githubusercontent.com/YOUR_USERNAME/aws-marimo-sagemaker/main/bootstrap.sh | bash
    ```
 
 ## Project Structure
 
 ```
-aws-marimo/
+aws-marimo-sagemaker/
 ├── sagemaker_ml_demo.py      # Main demo notebook
 ├── bootstrap.sh              # One-command setup
 ├── studio-lab-setup.sh       # Setup script

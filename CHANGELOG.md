@@ -7,10 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-- Initial project setup
-- MIT License
-- Keep a Changelog format
+## [0.1.1] - 2026-07-08
+
+**Final SageMaker Studio Lab release.** AWS is closing Studio Lab to new
+customers on 2026-07-30, so this is the last version targeting it. Development
+continues in v0.2.0, which drops Studio Lab and focuses on full SageMaker
+Studio (JupyterLab). See the
+[Studio Lab availability change](https://docs.aws.amazon.com/sagemaker/latest/dg/studio-lab-availability-change.html).
+
+### Fixed
+- Corrected stale `aws-marimo` repository/directory references to
+  `aws-marimo-sagemaker` across all scripts and docs (the mismatch broke the
+  auto-update logic in `~/start-marimo.sh`, which looked for a directory
+  `bootstrap.sh` never created)
+- Replaced `YOUR_USERNAME` placeholders with `scttfrdmn` in this project's own
+  setup instructions and badges (kept as placeholders only in the fork/clone
+  guidance where they belong)
+- Removed a hard-coded personal Studio Lab domain from `fix-proxy.sh`
+
+### Changed
+- Marked the Terraform, CDK, and `notebooks/` infrastructure-as-code as planned
+  (not yet shipped) in README and blog-post, instead of documenting them as if
+  they were available
 
 ## [0.1.0] - 2026-01-14
 
@@ -35,5 +53,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Troubleshooting sections
 - Comparison tables (Studio Lab vs Studio)
 
-[unreleased]: https://github.com/scttfrdmn/aws-marimo/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/scttfrdmn/aws-marimo/releases/tag/v0.1.0
+[unreleased]: https://github.com/scttfrdmn/aws-marimo-sagemaker/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/scttfrdmn/aws-marimo-sagemaker/compare/v0.1.0...v0.1.1
+[0.1.0]: https://github.com/scttfrdmn/aws-marimo-sagemaker/releases/tag/v0.1.0

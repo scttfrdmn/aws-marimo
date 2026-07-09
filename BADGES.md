@@ -6,14 +6,14 @@ Since marimo uses `.py` files (not `.ipynb`), create a custom badge that links t
 
 ### Using Shields.io (Clickable)
 ```markdown
-[![Setup on Studio Lab](https://img.shields.io/badge/Setup_on-SageMaker_Studio_Lab-orange?logo=amazon-aws&logoColor=white)](https://github.com/YOUR_USERNAME/aws-marimo#one-command-setup)
+[![Setup on Studio Lab](https://img.shields.io/badge/Setup_on-SageMaker_Studio_Lab-orange?logo=amazon-aws&logoColor=white)](https://github.com/scttfrdmn/aws-marimo-sagemaker#one-command-setup)
 ```
 
 [![Setup on Studio Lab](https://img.shields.io/badge/Setup_on-SageMaker_Studio_Lab-orange?logo=amazon-aws&logoColor=white)](#)
 
 ### Alternative: Direct Bootstrap Link
 ```markdown
-[![One-Command Setup](https://img.shields.io/badge/One--Command-Setup-success?logo=amazon-aws)](https://github.com/YOUR_USERNAME/aws-marimo/blob/main/BOOTSTRAP.md)
+[![One-Command Setup](https://img.shields.io/badge/One--Command-Setup-success?logo=amazon-aws)](https://github.com/scttfrdmn/aws-marimo-sagemaker/blob/main/BOOTSTRAP.md)
 ```
 
 [![One-Command Setup](https://img.shields.io/badge/One--Command-Setup-success?logo=amazon-aws)](#)
@@ -23,7 +23,7 @@ Since marimo uses `.py` files (not `.ipynb`), create a custom badge that links t
 If you convert marimo to .ipynb for demo purposes:
 
 ```markdown
-[![Open In Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/YOUR_USERNAME/aws-marimo/blob/main/demo.ipynb)
+[![Open In Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/scttfrdmn/aws-marimo-sagemaker/blob/main/demo.ipynb)
 ```
 
 **Note**: This only works for `.ipynb` files, not `.py` files.
@@ -34,8 +34,8 @@ Show multiple options:
 
 ```markdown
 <!-- For Studio Lab Users -->
-[![Setup on Studio Lab](https://img.shields.io/badge/Setup_on-Studio_Lab-orange?logo=amazon-aws&logoColor=white)](https://github.com/YOUR_USERNAME/aws-marimo/blob/main/BOOTSTRAP.md)
-[![Open Demo](https://img.shields.io/badge/Try-marimo_Demo-blue?logo=python&logoColor=white)](https://github.com/YOUR_USERNAME/aws-marimo/blob/main/sagemaker_ml_demo.py)
+[![Setup on Studio Lab](https://img.shields.io/badge/Setup_on-Studio_Lab-orange?logo=amazon-aws&logoColor=white)](https://github.com/scttfrdmn/aws-marimo-sagemaker/blob/main/BOOTSTRAP.md)
+[![Open Demo](https://img.shields.io/badge/Try-marimo_Demo-blue?logo=python&logoColor=white)](https://github.com/scttfrdmn/aws-marimo-sagemaker/blob/main/sagemaker_ml_demo.py)
 
 <!-- General Badges -->
 [![Python](https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white)](https://www.python.org)
@@ -48,7 +48,7 @@ Show multiple options:
 Create a badge that links to QUICKSTART:
 
 ```markdown
-[![5-Minute Setup](https://img.shields.io/badge/⚡_5--Minute-Setup_Guide-brightgreen)](https://github.com/YOUR_USERNAME/aws-marimo/blob/main/QUICKSTART.md)
+[![5-Minute Setup](https://img.shields.io/badge/⚡_5--Minute-Setup_Guide-brightgreen)](https://github.com/scttfrdmn/aws-marimo-sagemaker/blob/main/QUICKSTART.md)
 ```
 
 [![5-Minute Setup](https://img.shields.io/badge/⚡_5--Minute-Setup_Guide-brightgreen)](#)
@@ -60,8 +60,8 @@ Create a badge that links to QUICKSTART:
 
 Run reactive Python notebooks on AWS infrastructure
 
-[![Setup on Studio Lab](https://img.shields.io/badge/Setup_on-Studio_Lab-orange?logo=amazon-aws&logoColor=white)](https://github.com/YOUR_USERNAME/aws-marimo/blob/main/BOOTSTRAP.md)
-[![5-Minute Setup](https://img.shields.io/badge/⚡_5--Minute-Setup_Guide-brightgreen)](https://github.com/YOUR_USERNAME/aws-marimo/blob/main/QUICKSTART.md)
+[![Setup on Studio Lab](https://img.shields.io/badge/Setup_on-Studio_Lab-orange?logo=amazon-aws&logoColor=white)](https://github.com/scttfrdmn/aws-marimo-sagemaker/blob/main/BOOTSTRAP.md)
+[![5-Minute Setup](https://img.shields.io/badge/⚡_5--Minute-Setup_Guide-brightgreen)](https://github.com/scttfrdmn/aws-marimo-sagemaker/blob/main/QUICKSTART.md)
 [![Python](https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white)](https://www.python.org)
 [![marimo](https://img.shields.io/badge/marimo-latest-green)](https://marimo.io)
 
@@ -69,7 +69,7 @@ Run reactive Python notebooks on AWS infrastructure
 
 For SageMaker Studio Lab users:
 ```bash
-curl -fsSL https://raw.githubusercontent.com/YOUR_USERNAME/aws-marimo/main/bootstrap.sh | bash
+curl -fsSL https://raw.githubusercontent.com/scttfrdmn/aws-marimo-sagemaker/main/bootstrap.sh | bash
 ```
 
 [Full Documentation →](BOOTSTRAP.md)

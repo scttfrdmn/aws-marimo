@@ -11,14 +11,14 @@ eval "$(conda shell.bash hook)"
 conda activate marimo-env
 
 # Step 1: Update repository from GitHub
-if [ -d ~/aws-marimo ]; then
+if [ -d ~/aws-marimo-sagemaker ]; then
     echo "📦 Step 1: Updating repository from GitHub..."
-    cd ~/aws-marimo
+    cd ~/aws-marimo-sagemaker
     git pull origin main
     cd - > /dev/null
     echo "✅ Repository updated"
 else
-    echo "⚠️  Repository not found at ~/aws-marimo"
+    echo "⚠️  Repository not found at ~/aws-marimo-sagemaker"
 fi
 
 echo ""

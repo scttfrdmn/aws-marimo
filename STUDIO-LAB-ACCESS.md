@@ -57,7 +57,7 @@ pip install --upgrade marimo
 
 ### Option 2: Use the Upgrade Script
 ```bash
-~/aws-marimo/upgrade-marimo.sh
+~/aws-marimo-sagemaker/upgrade-marimo.sh
 ```
 
 This will:
@@ -72,7 +72,7 @@ This will:
 ~/start-marimo.sh
 
 # Upgrade everything
-~/aws-marimo/upgrade-marimo.sh
+~/aws-marimo-sagemaker/upgrade-marimo.sh
 
 # Update repository only
 ~/update-marimo.sh
@@ -80,7 +80,7 @@ This will:
 # Open a specific notebook
 conda activate marimo-env
 marimo edit ~/marimo-demo.py
-marimo edit ~/aws-marimo/sagemaker_ml_demo.py
+marimo edit ~/aws-marimo-sagemaker/sagemaker_ml_demo.py
 ```
 
 ## 🐛 Troubleshooting
@@ -93,7 +93,7 @@ marimo edit ~/aws-marimo/sagemaker_ml_demo.py
 ### marimo won't start
 - Check that the conda environment is activated: `conda activate marimo-env`
 - Verify marimo is installed: `marimo --version`
-- Re-run the setup: `~/aws-marimo/studio-lab-setup.sh`
+- Re-run the setup: `~/aws-marimo-sagemaker/studio-lab-setup.sh`
 
 ### Port already in use
 - Stop any running marimo instances
@@ -108,6 +108,6 @@ marimo edit ~/aws-marimo/sagemaker_ml_demo.py
 ## 📚 Next Steps
 
 - Try the quick demo: `marimo edit ~/marimo-demo.py`
-- Explore the ML demo: `marimo edit ~/aws-marimo/sagemaker_ml_demo.py`
+- Explore the ML demo: `marimo edit ~/aws-marimo-sagemaker/sagemaker_ml_demo.py`
 - Read the docs: https://docs.marimo.io
 - Check out examples: https://github.com/marimo-team/marimo/tree/main/examples

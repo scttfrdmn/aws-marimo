@@ -7,7 +7,7 @@ Run [marimo](https://marimo.io), the reactive Python notebook, on Amazon SageMak
 [![Python](https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white)](https://www.python.org)
 [![marimo](https://img.shields.io/badge/marimo-0.21.1+-green?logo=python)](https://marimo.io)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.1.0-blue)](VERSION)
+[![Version](https://img.shields.io/badge/version-0.1.1-blue)](VERSION)
 
 ---
 
@@ -76,11 +76,16 @@ This repository provides:
    - Sample notebooks
    - Troubleshooting tips
 
-3. **🔧 Infrastructure as Code**
-   - `terraform/` - Complete Terraform deployment
+3. **🔧 Infrastructure as Code** *(planned — not yet available)*
+   - `terraform/` - Terraform deployment
    - `cdk/` - AWS CDK (Python) deployment
    - Lifecycle configurations
    - Sample notebooks
+
+   > **Note:** The `terraform/`, `cdk/`, and `notebooks/` directories are on the
+   > roadmap but not in this release. Today the project targets manual and
+   > bootstrap-based setup on Studio Lab / Studio. Track progress in
+   > [CHANGELOG.md](CHANGELOG.md).
 
 4. **🎓 [Demo Notebook](sagemaker_ml_demo.py)**
    - Complete ML workflow
@@ -107,13 +112,12 @@ This repository provides:
 4. See [QUICKSTART.md](QUICKSTART.md) for details
 5. **Note:** On Studio Lab, WebSocket connections are blocked by the gateway — see [known limitation](#-known-limitation-websocket-on-sagemaker-studio-lab)
 
-### Path 3: Production Deployment
+### Path 3: Production Deployment *(planned)*
 **Perfect for**: Teams, production workloads, persistent setup
 
 1. Read the [blog post](blog-post.md) for architecture understanding
-2. Choose Terraform or CDK
-3. Deploy with one command
-4. Get automated, persistent marimo installation
+2. Terraform and CDK deployments are on the roadmap (not yet in this release)
+3. For now, use the bootstrap or manual setup on Studio / Studio Lab
 
 ## 💡 Why marimo?
 
@@ -159,15 +163,18 @@ Traditional Jupyter notebooks have well-known issues:
 ├── CONTRIBUTING.md             # Contribution guidelines
 ├── CHANGELOG.md                # Version history (Keep a Changelog)
 ├── LICENSE                     # MIT License
-├── VERSION                     # Semantic version (0.1.0)
+├── VERSION                     # Semantic version (0.1.1)
 ├── blog-post.md                # Full blog post (~2000 words)
 ├── sagemaker_ml_demo.py        # Complete demo notebook
 ├── bootstrap.sh                # One-command setup script
 ├── start-marimo-shim.sh        # Start marimo with WebSocket shim
 ├── studio-lab-setup.sh         # Setup script with conda env
-├── terraform/                  # Terraform IaC (coming soon)
-├── cdk/                        # AWS CDK IaC (coming soon)
-└── notebooks/                  # Sample notebooks (coming soon)
+└── uninstall.sh                # Remove marimo setup
+
+# Planned (not yet in this release):
+#   terraform/                  # Terraform IaC
+#   cdk/                        # AWS CDK IaC
+#   notebooks/                  # Sample notebooks
 ```
 
 ## 🎓 Sample Notebooks
@@ -202,34 +209,18 @@ See [sagemaker_ml_demo.py](sagemaker_ml_demo.py) for a complete, production-read
 
 ## 🚢 Deployment Options
 
-### Option 1: Terraform
+### Manual (Available Now)
 
-```bash
-cd terraform
-terraform init
-terraform apply
-```
+See [QUICKSTART.md](QUICKSTART.md) - just `pip install marimo` and go! This is
+the supported path today for both Studio Lab (free) and Studio.
 
-Creates:
-- SageMaker Studio Domain
-- VPC and security groups
-- IAM roles
-- Lifecycle configuration for marimo
-- S3 bucket for artifacts
+### Terraform / AWS CDK *(planned — not yet available)*
 
-### Option 2: AWS CDK
-
-```bash
-cd cdk
-pip install -r requirements.txt
-cdk deploy
-```
-
-Same infrastructure as Terraform, using Python CDK constructs.
-
-### Option 3: Manual (Quickest)
-
-See [QUICKSTART.md](QUICKSTART.md) - just `pip install marimo` and go!
+Infrastructure-as-code deployments (`terraform/` and `cdk/`) that provision a
+SageMaker Studio Domain, VPC, IAM roles, lifecycle configuration, and an S3
+artifact bucket are on the roadmap. They are **not** part of this release — the
+commands and architecture in [blog-post.md](blog-post.md) describe the intended
+design, not shipped code. Use the manual or bootstrap setup for now.
 
 ## 💰 Cost Comparison
 
@@ -250,23 +241,14 @@ marimo's lightweight architecture means minimal overhead costs.
 pip install --upgrade marimo
 ```
 
-**With Lifecycle Config:**
-Update the version in `install-marimo.sh` and redeploy lifecycle configuration.
-
 ### Cleanup
 
-**Terraform:**
-```bash
-terraform destroy
-```
+**Manual / Bootstrap:**
+Run `bash uninstall.sh` to remove the conda environment, helper scripts, and
+demo files — or just stop using it, since there's no cloud infrastructure to
+tear down.
 
-**CDK:**
-```bash
-cdk destroy
-```
-
-**Manual:**
-Just stop using it - no infrastructure to clean up!
+**Terraform / CDK:** *(applies once IaC ships)* `terraform destroy` / `cdk destroy`.
 
 ## 🤝 Use Cases
 
@@ -375,7 +357,7 @@ marimo: Apache 2.0 License
 
 ## 📝 Project Info
 
-- **Version**: 0.1.0 ([Semantic Versioning](https://semver.org/))
+- **Version**: 0.1.1 ([Semantic Versioning](https://semver.org/))
 - **License**: [MIT](LICENSE)
 - **Copyright**: © 2026 Scott Friedman
 - **Changelog**: [Keep a Changelog](https://keepachangelog.com/) format

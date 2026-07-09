@@ -119,7 +119,13 @@ Our deployment creates a complete SageMaker Studio environment with marimo suppo
 
 ## Deployment
 
-We provide two deployment options: Terraform and AWS CDK. Both create identical infrastructure—choose based on your team's preferences.
+> **Status note:** The Terraform and CDK deployments described below are the
+> *intended architecture* and are on the project roadmap. They are not yet
+> included in the repository. For a working setup today, use the manual or
+> bootstrap install on Studio Lab / Studio (see the project README and
+> QUICKSTART).
+
+The plan is to provide two deployment options: Terraform and AWS CDK. Both create identical infrastructure—choose based on your team's preferences.
 
 ### Option 1: Terraform Deployment
 

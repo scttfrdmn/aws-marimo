@@ -5,7 +5,7 @@ The easiest way to get marimo running on SageMaker Studio Lab with automatic upd
 ## TL;DR - Single Command Setup
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/YOUR_USERNAME/aws-marimo/main/bootstrap.sh | bash
+curl -fsSL https://raw.githubusercontent.com/scttfrdmn/aws-marimo-sagemaker/main/bootstrap.sh | bash
 ```
 
 That's it! Everything else is automatic.
@@ -14,7 +14,7 @@ That's it! Everything else is automatic.
 
 The bootstrap script:
 
-1. **📦 Clones this repository** to `~/aws-marimo`
+1. **📦 Clones this repository** to `~/aws-marimo-sagemaker`
 2. **🔧 Runs the setup script** automatically
 3. **🔄 Creates update mechanism** for pulling latest changes
 4. **✅ Configures everything** (conda env, scripts, demo)
@@ -65,7 +65,7 @@ In your environment:
 ## File Structure After Bootstrap
 
 ```
-~/aws-marimo/              # Repository clone
+~/aws-marimo-sagemaker/              # Repository clone
 ├── sagemaker_ml_demo.py   # Full ML demo
 ├── bootstrap.sh           # This bootstrap script
 ├── studio-lab-setup.sh    # Setup script
@@ -101,7 +101,7 @@ In your environment:
 marimo edit ~/marimo-demo.py
 
 # Full ML workflow
-marimo edit ~/aws-marimo/sagemaker_ml_demo.py
+marimo edit ~/aws-marimo-sagemaker/sagemaker_ml_demo.py
 ```
 
 ## Advanced: Update Strategy
@@ -135,12 +135,12 @@ fi
 3. **Update bootstrap URL** in your fork:
 ```bash
 # Change YOUR_USERNAME to your GitHub username
-REPO_URL="https://github.com/YOUR_USERNAME/aws-marimo.git"
+REPO_URL="https://github.com/YOUR_USERNAME/aws-marimo-sagemaker.git"
 ```
 
 4. **Share with your team**:
 ```bash
-curl -fsSL https://raw.githubusercontent.com/YOUR_TEAM/aws-marimo/main/bootstrap.sh | bash
+curl -fsSL https://raw.githubusercontent.com/YOUR_TEAM/aws-marimo-sagemaker/main/bootstrap.sh | bash
 ```
 
 Now everyone gets your custom setup automatically!
@@ -167,7 +167,7 @@ The bootstrap script:
 
 **Best practice**: Review the script first:
 ```bash
-curl -fsSL https://raw.githubusercontent.com/YOUR_USERNAME/aws-marimo/main/bootstrap.sh
+curl -fsSL https://raw.githubusercontent.com/scttfrdmn/aws-marimo-sagemaker/main/bootstrap.sh
 ```
 
 Then run it if satisfied.
@@ -187,21 +187,21 @@ conda install git
 Bootstrap automatically updates:
 ```bash
 # It will do:
-cd ~/aws-marimo
+cd ~/aws-marimo-sagemaker
 git pull origin main
 ```
 
 ### Want to start fresh
 ```bash
 # Remove and re-bootstrap
-rm -rf ~/aws-marimo
+rm -rf ~/aws-marimo-sagemaker
 curl -fsSL https://[...]/bootstrap.sh | bash
 ```
 
 ### Updates not working
 ```bash
 # Manual update
-cd ~/aws-marimo
+cd ~/aws-marimo-sagemaker
 git pull origin main
 ```
 
@@ -237,8 +237,8 @@ If you prefer manual control:
 
 ```bash
 # Clone repository
-git clone https://github.com/YOUR_USERNAME/aws-marimo.git
-cd aws-marimo
+git clone https://github.com/scttfrdmn/aws-marimo-sagemaker.git
+cd aws-marimo-sagemaker
 
 # Run setup
 bash studio-lab-setup.sh
@@ -260,7 +260,7 @@ git pull origin main
 After bootstrap:
 
 1. ✅ Run `~/start-marimo.sh`
-2. ✅ Try `marimo edit ~/aws-marimo/sagemaker_ml_demo.py`
+2. ✅ Try `marimo edit ~/aws-marimo-sagemaker/sagemaker_ml_demo.py`
 3. ✅ Explore the repository files
 4. ✅ Star the repo on GitHub! ⭐
 5. ✅ Consider forking for your custom setup
@@ -281,5 +281,5 @@ Everyone using the bootstrap will get your improvements!
 **One command to rule them all!** 🚀
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/YOUR_USERNAME/aws-marimo/main/bootstrap.sh | bash
+curl -fsSL https://raw.githubusercontent.com/scttfrdmn/aws-marimo-sagemaker/main/bootstrap.sh | bash
 ```
