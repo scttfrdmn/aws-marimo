@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-07-10
+
+**marimo now runs interactively on SageMaker Studio, verified end-to-end** — a
+cell renders, edits, and executes in a browser on a live Studio JupyterLab space.
+
+### Changed
+- Replaced the external `ws-sse-proxy` dependency with a single vendored file,
+  [`sagemaker_marimo_bridge.py`](sagemaker_marimo_bridge.py). No extra install —
+  it uses libraries marimo already ships (`starlette`, `uvicorn`, `httpx`,
+  `websockets`).
+- `start-marimo.sh` now runs the vendored bridge, works both cloned and via
+  `curl … | bash`, and can open a specific notebook (`bash start-marimo.sh nb.py`).
+- Trimmed the docs to a cut-to-the-chase README plus one explainer,
+  [docs/why-the-bridge.md](docs/why-the-bridge.md).
+
+### Fixed
+- **Corrected the root cause.** It is **not** a stripped session *cookie*.
+  SageMaker Studio's proxy **drops the query string on WebSocket upgrades**, so
+  marimo's `session_id` never reaches the backend and marimo 403s the `/ws`
+  handshake (→ blank notebook). The bridge restores the query — smuggled through
+  the URL path, which SageMaker preserves — and connects to marimo over
+  localhost. Verified that marimo and `jupyter-server-proxy` are both correct;
+  the strip is SageMaker-specific.
+
+### Removed
+- `WEBSOCKET-STATUS.md`, `QUICKSTART.md`, `blog-post.md` (draft),
+  `diagnose-proxy.sh`, `upgrade-marimo.sh`, `uninstall.sh`, and the `test/`
+  debugging harnesses — superseded (still in git history).
+
 ## [0.2.0] - 2026-07-08
 
 Retargets the project from the now-EOL SageMaker Studio Lab to full **SageMaker
@@ -87,7 +116,8 @@ Studio (JupyterLab). See the
 - Troubleshooting sections
 - Comparison tables (Studio Lab vs Studio)
 
-[unreleased]: https://github.com/scttfrdmn/aws-marimo-sagemaker/compare/v0.2.0...HEAD
+[unreleased]: https://github.com/scttfrdmn/aws-marimo-sagemaker/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/scttfrdmn/aws-marimo-sagemaker/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/scttfrdmn/aws-marimo-sagemaker/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/scttfrdmn/aws-marimo-sagemaker/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/scttfrdmn/aws-marimo-sagemaker/releases/tag/v0.1.0
