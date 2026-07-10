@@ -8,12 +8,12 @@ threshold and the anomalies re-flag — reactively, in order, every time.
 Data: NOAA GHCN-Daily on the AWS Open Data Registry
       https://registry.opendata.aws/noaa-ghcn/  (public bucket, no credentials)
 
-Dependencies (beyond marimo):
-    pip install polars pyarrow s3fs scikit-learn altair
-
 Run it via the bridge (see the repo README):
     pip install polars pyarrow s3fs scikit-learn altair
     bash start-marimo.sh explore.py
+
+Note: the "display" cells below use hide_code=True so the controls, the summary,
+and the chart render on their own — the code is a click away via the ⋯ menu.
 """
 
 import marimo
@@ -22,7 +22,7 @@ __generated_with = "0.23.13"
 app = marimo.App(width="medium")
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _():
     import marimo as mo
     import numpy as np
@@ -32,7 +32,7 @@ def _():
     return LinearRegression, alt, mo, np, pl
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(
         """
@@ -47,7 +47,7 @@ def _(mo):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(pl):
     # Daily maximum temperature (TMAX) for 2023, read directly from S3.
     # DATA_VALUE is in tenths of °C. This is millions of rows across many
@@ -70,7 +70,7 @@ def _(pl):
     return (tmax,)
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     # Controls are just values — no callbacks, no "on change" wiring.
     station = mo.ui.dropdown(
@@ -86,8 +86,14 @@ def _(mo):
     sensitivity = mo.ui.slider(
         1.5, 3.5, value=2.5, step=0.5, label="Anomaly threshold (σ)"
     )
-    mo.hstack([station, sensitivity])
     return sensitivity, station
+
+
+@app.cell(hide_code=True)
+def _(mo, sensitivity, station):
+    # Display the controls on their own (no code around them).
+    mo.hstack([station, sensitivity], justify="start", gap=2)
+    return
 
 
 @app.cell
@@ -107,27 +113,34 @@ def _(LinearRegression, np, pl, station, tmax):
     model = LinearRegression().fit(X, y)
     expected = model.predict(X)
     residual = y - expected
-    return X, expected, model, residual, s, y
+
+    # Classify anomalies at the chosen threshold.
+    z = (residual - residual.mean()) / residual.std()
+    return X, expected, model, s, y, z
 
 
 @app.cell
-def _(expected, mo, model, np, residual, s, sensitivity, X, y):
-    # Classify anomalies at the chosen threshold — re-runs when the slider moves.
-    z = (residual - residual.mean()) / residual.std()
+def _(X, expected, model, np, s, sensitivity, y, z):
     result = s.with_columns(
         expected=expected,
         is_anomaly=np.abs(z) > sensitivity.value,
     )
-    n = int(result["is_anomaly"].sum())
-    summary = mo.md(
-        f"**{n}** anomalous days at {sensitivity.value}σ "
-        f"(seasonal fit R² = {model.score(X, y):.2f})"
+    n_anomalies = int(result["is_anomaly"].sum())
+    r2 = model.score(X, y)
+    return n_anomalies, r2, result
+
+
+@app.cell(hide_code=True)
+def _(mo, n_anomalies, r2, sensitivity):
+    # The headline result, on its own line.
+    mo.md(
+        f"### **{n_anomalies}** anomalous days at {sensitivity.value}σ "
+        f"&nbsp;·&nbsp; seasonal fit R² = {r2:.2f}"
     )
-    summary
-    return (result,)
+    return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(alt, result, station):
     base = alt.Chart(result.to_pandas()).encode(x="DATE:T")
     line = base.mark_line(color="steelblue").encode(
