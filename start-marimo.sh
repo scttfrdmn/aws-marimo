@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 # Start marimo on Amazon SageMaker Studio.
 #
-# Runs marimo behind a small WebSocket bridge that works around SageMaker's
-# proxy dropping the WebSocket query string (which otherwise leaves notebooks
-# stuck "connecting" with blank cells). See docs/why-the-bridge.md.
+# Runs marimo behind a small bridge that enables marimo to work on SageMaker.
+# See docs/why-the-bridge.md for what the bridge does and why it's needed.
 #
 # Two ways to run, both fine:
 #   bash start-marimo.sh                                  # after cloning

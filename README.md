@@ -8,9 +8,8 @@ SageMaker Studio.
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 Out of the box, marimo notebooks on SageMaker Studio get stuck **"connecting"
-with blank cells** — SageMaker's proxy drops the WebSocket query string that
-marimo needs, so the connection is rejected. This repo ships a tiny bridge that
-fixes it. ([Why, in detail →](docs/why-the-bridge.md))
+with blank cells**. This repo ships a small bridge that enables marimo to work
+on SageMaker. ([Why it's needed →](docs/why-the-bridge.md))
 
 ## Quick start
 
@@ -37,9 +36,8 @@ Either way it installs marimo (if needed), starts it, and prints a URL.
 
 The notebook renders, cells are editable, and running a cell returns output.
 
-> **Open the bridge port (2719), not marimo's port (2718).** Port 2718 is
-> marimo directly, which has the broken WebSocket; 2719 is the bridge that
-> fixes it.
+> **Open the bridge port (2719), not marimo's port (2718).** Only the bridge
+> port works through SageMaker.
 
 ## Open a specific notebook
 
@@ -55,27 +53,20 @@ Running the script each session works, but for regular use a Studio
 **lifecycle configuration** installs marimo and the bridge once, so they
 survive space restarts. See [`lifecycle-config/`](lifecycle-config/).
 
-A custom Studio JupyterLab image can bake them in too, but note the bridge is
-still required either way — it's what makes the WebSocket connect, not just
-what installs marimo.
+A custom Studio JupyterLab image can bake them in too. Either way, the bridge
+is required — it's what enables marimo to work on SageMaker.
 
 ## How it works
 
 marimo runs on `localhost:2718`. The bridge runs on `2719` — the port you open
-through SageMaker — and forwards to marimo. On the way, it **puts back the
-WebSocket query string SageMaker drops**, so marimo receives its `session_id`
-and accepts the connection.
+through SageMaker — and forwards to marimo.
 
 ```
 Browser ──▶ SageMaker proxy ──▶ bridge ──▶ marimo
             /proxy/2719/        :2719       127.0.0.1:2718
 ```
 
-The bridge tries a native WebSocket first, so if SageMaker stops dropping the
-query it does nothing and gets out of the way.
-
-For the full explanation — and the evidence this is a SageMaker bug, not a
-marimo or `jupyter-server-proxy` one — see
+For what the bridge does and why SageMaker needs it, see
 **[docs/why-the-bridge.md](docs/why-the-bridge.md)**.
 
 ## Requirements
