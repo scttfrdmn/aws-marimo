@@ -5,9 +5,7 @@
 # See docs/why-the-bridge.md for what the bridge does and why it's needed.
 #
 # Usage:
-#   bash start-marimo.sh [notebook.py] [--open]
-#     notebook.py   optional notebook file to open
-#     --open        open the browser automatically (local runs only; see note)
+#   bash start-marimo.sh [notebook.py]
 #
 # Two ways to run, both fine:
 #   bash start-marimo.sh                                  # after cloning
@@ -16,19 +14,11 @@ set -euo pipefail
 
 MARIMO_PORT="${MARIMO_PORT:-2718}"   # marimo backend (localhost only)
 BRIDGE_PORT="${BRIDGE_PORT:-2719}"   # what you open through SageMaker
+NOTEBOOK="${1:-}"                    # optional notebook file to open
 
 RAW_BASE="https://raw.githubusercontent.com/scttfrdmn/aws-marimo-sagemaker/main"
 BRIDGE_FILE="sagemaker_marimo_bridge.py"
-
-# Args: an optional notebook filename and/or --open, in any order.
-NOTEBOOK=""
-OPEN_BROWSER=0
-for arg in "$@"; do
-  case "$arg" in
-    --open) OPEN_BROWSER=1 ;;
-    *) NOTEBOOK="$arg" ;;
-  esac
-done
+METADATA="/opt/ml/metadata/resource-metadata.json"
 
 echo "== marimo on SageMaker Studio =="
 
@@ -79,47 +69,46 @@ NB_QUERY=""
 [ -n "${NOTEBOOK}" ] && NB_QUERY="?file=${NOTEBOOK}"
 PROXY_PATH="/jupyterlab/default/proxy/${BRIDGE_PORT}/${NB_QUERY}"
 
-# Are we on SageMaker Studio, or a local machine?
-ON_SAGEMAKER=0
-[ -f /opt/ml/metadata/resource-metadata.json ] && ON_SAGEMAKER=1
-
-# --open: only meaningful locally. From a SageMaker terminal there is no way to
-# open a tab in your (remote) browser, and the per-space Studio host isn't
-# knowable here — so we can't auto-open or even build the full URL for you.
-open_local() {
-  local url="$1"
-  if command -v open >/dev/null 2>&1; then open "$url"; return 0; fi
-  if command -v xdg-open >/dev/null 2>&1; then xdg-open "$url"; return 0; fi
-  return 1
-}
-
-if [ "${OPEN_BROWSER}" -eq 1 ] && [ "${ON_SAGEMAKER}" -eq 0 ]; then
-  LOCAL_URL="http://localhost:${BRIDGE_PORT}/${NB_QUERY}"
-  echo ""
-  echo "Opening ${LOCAL_URL} ..."
-  open_local "${LOCAL_URL}" || echo "(no browser opener found — open it manually)"
+# 5. Build the full URL. The space knows its own Studio host — read the space
+#    name / domain from the on-instance metadata and ask the SageMaker API for
+#    the space URL. Needs the AWS CLI and sagemaker:DescribeSpace permission;
+#    if either is missing we fall back to printing the path to paste.
+STUDIO_URL=""
+if [ -f "${METADATA}" ] && command -v aws >/dev/null 2>&1; then
+  DOMAIN_ID="$(python -c "import json;print(json.load(open('${METADATA}')).get('DomainId',''))" 2>/dev/null || true)"
+  SPACE_NAME="$(python -c "import json;print(json.load(open('${METADATA}')).get('SpaceName',''))" 2>/dev/null || true)"
+  REGION="$(python -c "import json;a=json.load(open('${METADATA}')).get('ResourceArn','');print(a.split(':')[3] if a.count(':')>3 else '')" 2>/dev/null || true)"
+  if [ -n "${DOMAIN_ID}" ] && [ -n "${SPACE_NAME}" ]; then
+    BASE_URL="$(aws sagemaker describe-space \
+      ${REGION:+--region "${REGION}"} \
+      --domain-id "${DOMAIN_ID}" --space-name "${SPACE_NAME}" \
+      --query 'Url' --output text 2>/dev/null || true)"
+    # describe-space returns .../jupyterlab/default — swap the tail for our path.
+    if [ -n "${BASE_URL}" ] && [ "${BASE_URL}" != "None" ]; then
+      HOST="${BASE_URL%%/jupyterlab/*}"
+      STUDIO_URL="${HOST}${PROXY_PATH}"
+    fi
+  fi
 fi
 
 echo ""
 echo "== Ready =="
-if [ "${ON_SAGEMAKER}" -eq 1 ]; then
-  cat <<EOF
-
-Open marimo in your browser at your JupyterLab host + this path:
-
-    ${PROXY_PATH}
-
-i.e. take the URL in your browser's address bar and replace everything after
-the host with the path above. (--open can't help here: the SageMaker terminal
-can't open a tab in your local browser.)
-
-Open the bridge port (${BRIDGE_PORT}), not marimo's port (${MARIMO_PORT}).
-EOF
-else
+echo ""
+if [ -n "${STUDIO_URL}" ]; then
+  echo "Open marimo:"
   echo ""
-  echo "Open:  http://localhost:${BRIDGE_PORT}/${NB_QUERY}"
+  echo "    ${STUDIO_URL}"
+else
+  echo "Open marimo at your JupyterLab host + this path:"
+  echo ""
+  echo "    ${PROXY_PATH}"
+  echo ""
+  echo "(Replace everything after the host in your browser's address bar with"
+  echo " the path above. Couldn't auto-build the full URL — the AWS CLI or"
+  echo " sagemaker:DescribeSpace permission isn't available in this space.)"
 fi
 echo ""
+echo "Use the bridge port (${BRIDGE_PORT}), not marimo's port (${MARIMO_PORT})."
 echo "Press Ctrl+C to stop."
 
 wait -n "${MARIMO_PID}" "${BRIDGE_PID}" 2>/dev/null || true

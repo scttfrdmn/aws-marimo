@@ -23,17 +23,15 @@ cd aws-marimo-sagemaker
 bash start-marimo.sh
 ```
 
-Either way it installs marimo (if needed), starts it, and prints a URL.
-**Open that URL** — it's your JupyterLab host with the path replaced by:
-
-```
-/jupyterlab/default/proxy/2719/
-```
+It installs marimo (if needed), starts it, and prints a **clickable link** to
+open marimo in your browser. Click it.
 
 The notebook renders, cells are editable, and running a cell returns output.
 
-> **Open the bridge port (2719), not marimo's port (2718).** Only the bridge
-> port works through SageMaker.
+> The link uses the bridge port (2719), not marimo's port (2718) — only the
+> bridge port works through SageMaker. (If the script can't build the full link
+> — no AWS CLI or `sagemaker:DescribeSpace` permission — it prints the path to
+> paste after your JupyterLab host instead.)
 
 ## Open a specific notebook
 
@@ -42,9 +40,6 @@ bash start-marimo.sh my_notebook.py
 ```
 
 The repo includes [`marimo-demo.py`](marimo-demo.py) to try.
-
-Running locally (not on SageMaker)? Add `--open` to launch the browser
-automatically: `bash start-marimo.sh my_notebook.py --open`.
 
 ## Make it persist across restarts
 
