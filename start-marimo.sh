@@ -4,19 +4,31 @@
 # Runs marimo behind a small bridge that enables marimo to work on SageMaker.
 # See docs/why-the-bridge.md for what the bridge does and why it's needed.
 #
+# Usage:
+#   bash start-marimo.sh [notebook.py] [--open]
+#     notebook.py   optional notebook file to open
+#     --open        open the browser automatically (local runs only; see note)
+#
 # Two ways to run, both fine:
 #   bash start-marimo.sh                                  # after cloning
 #   curl -fsSL <raw-url>/start-marimo.sh | bash           # zero-clone
-#
-# Then open the printed URL in your browser.
 set -euo pipefail
 
 MARIMO_PORT="${MARIMO_PORT:-2718}"   # marimo backend (localhost only)
 BRIDGE_PORT="${BRIDGE_PORT:-2719}"   # what you open through SageMaker
-NOTEBOOK="${1:-}"                    # optional notebook file to open
 
 RAW_BASE="https://raw.githubusercontent.com/scttfrdmn/aws-marimo-sagemaker/main"
 BRIDGE_FILE="sagemaker_marimo_bridge.py"
+
+# Args: an optional notebook filename and/or --open, in any order.
+NOTEBOOK=""
+OPEN_BROWSER=0
+for arg in "$@"; do
+  case "$arg" in
+    --open) OPEN_BROWSER=1 ;;
+    *) NOTEBOOK="$arg" ;;
+  esac
+done
 
 echo "== marimo on SageMaker Studio =="
 
@@ -63,23 +75,51 @@ echo "Starting bridge on 0.0.0.0:${BRIDGE_PORT} ..."
 python "${BRIDGE_PATH}" --marimo-port "${MARIMO_PORT}" --port "${BRIDGE_PORT}" &
 BRIDGE_PID=$!
 
-# 5. Print the URL to open.
 NB_QUERY=""
 [ -n "${NOTEBOOK}" ] && NB_QUERY="?file=${NOTEBOOK}"
-cat <<EOF
+PROXY_PATH="/jupyterlab/default/proxy/${BRIDGE_PORT}/${NB_QUERY}"
 
-== Ready ==
+# Are we on SageMaker Studio, or a local machine?
+ON_SAGEMAKER=0
+[ -f /opt/ml/metadata/resource-metadata.json ] && ON_SAGEMAKER=1
 
-Open marimo through the SageMaker proxy at the BRIDGE port (${BRIDGE_PORT}).
-Take your JupyterLab URL and replace everything after the host with:
+# --open: only meaningful locally. From a SageMaker terminal there is no way to
+# open a tab in your (remote) browser, and the per-space Studio host isn't
+# knowable here — so we can't auto-open or even build the full URL for you.
+open_local() {
+  local url="$1"
+  if command -v open >/dev/null 2>&1; then open "$url"; return 0; fi
+  if command -v xdg-open >/dev/null 2>&1; then xdg-open "$url"; return 0; fi
+  return 1
+}
 
-    /jupyterlab/default/proxy/${BRIDGE_PORT}/${NB_QUERY}
+if [ "${OPEN_BROWSER}" -eq 1 ] && [ "${ON_SAGEMAKER}" -eq 0 ]; then
+  LOCAL_URL="http://localhost:${BRIDGE_PORT}/${NB_QUERY}"
+  echo ""
+  echo "Opening ${LOCAL_URL} ..."
+  open_local "${LOCAL_URL}" || echo "(no browser opener found — open it manually)"
+fi
 
-e.g.  https://<studio-host>/jupyterlab/default/proxy/${BRIDGE_PORT}/${NB_QUERY}
+echo ""
+echo "== Ready =="
+if [ "${ON_SAGEMAKER}" -eq 1 ]; then
+  cat <<EOF
 
-(Do NOT open port ${MARIMO_PORT} directly — that path has the broken WebSocket.)
+Open marimo in your browser at your JupyterLab host + this path:
 
-Press Ctrl+C to stop.
+    ${PROXY_PATH}
+
+i.e. take the URL in your browser's address bar and replace everything after
+the host with the path above. (--open can't help here: the SageMaker terminal
+can't open a tab in your local browser.)
+
+Open the bridge port (${BRIDGE_PORT}), not marimo's port (${MARIMO_PORT}).
 EOF
+else
+  echo ""
+  echo "Open:  http://localhost:${BRIDGE_PORT}/${NB_QUERY}"
+fi
+echo ""
+echo "Press Ctrl+C to stop."
 
 wait -n "${MARIMO_PID}" "${BRIDGE_PID}" 2>/dev/null || true
