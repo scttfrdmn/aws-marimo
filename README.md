@@ -61,19 +61,22 @@ what installs marimo.
 
 ## How it works
 
-marimo runs on `localhost:2718`; the bridge runs on `2719` and is what you open
-through SageMaker. The bridge reverse-proxies marimo's HTTP and **restores the
-WebSocket query string that SageMaker strips**, connecting to marimo over
-localhost where everything is intact. It prefers a native WebSocket and becomes
-a transparent passthrough if AWS ever fixes the underlying issue.
+marimo runs on `localhost:2718`. The bridge runs on `2719` — the port you open
+through SageMaker — and forwards to marimo. On the way, it **puts back the
+WebSocket query string SageMaker drops**, so marimo receives its `session_id`
+and accepts the connection.
 
 ```
-Browser ──/jupyterlab/default/proxy/2719/── SageMaker ──── bridge ──── marimo
-                                                              (:2719)   (127.0.0.1:2718)
+Browser ──▶ SageMaker proxy ──▶ bridge ──▶ marimo
+            /proxy/2719/        :2719       127.0.0.1:2718
 ```
 
-Full explanation, and the evidence this is a SageMaker-specific issue (not
-marimo, not `jupyter-server-proxy`): **[docs/why-the-bridge.md](docs/why-the-bridge.md)**.
+The bridge tries a native WebSocket first, so if SageMaker stops dropping the
+query it does nothing and gets out of the way.
+
+For the full explanation — and the evidence this is a SageMaker bug, not a
+marimo or `jupyter-server-proxy` one — see
+**[docs/why-the-bridge.md](docs/why-the-bridge.md)**.
 
 ## Requirements
 
