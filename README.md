@@ -1,7 +1,7 @@
 # marimo on Amazon SageMaker Studio
 
 Run [marimo](https://marimo.io) — the reactive Python notebook — on Amazon
-SageMaker Studio, with interactive cell execution actually working.
+SageMaker Studio.
 
 [![Python](https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white)](https://www.python.org)
 [![marimo](https://img.shields.io/badge/marimo-latest-green?logo=python)](https://marimo.io)
@@ -36,8 +36,7 @@ replaced by:
 /jupyterlab/default/proxy/2719/
 ```
 
-The notebook renders, cells are editable, and running a cell returns output — a
-real interactive marimo session on SageMaker.
+The notebook renders, cells are editable, and running a cell returns output.
 
 > **Open the bridge port (2719), not marimo's port (2718).** Port 2718 is
 > marimo directly, which has the broken WebSocket; 2719 is the bridge that
