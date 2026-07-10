@@ -54,7 +54,14 @@ def _(pl):
     # files — fast next to the bucket, awkward to pull to a laptop.
     tmax = pl.read_parquet(
         "s3://noaa-ghcn-pds/parquet/by_year/YEAR=2023/ELEMENT=TMAX/*.parquet",
-        storage_options={"anon": "true"},  # public bucket; drop for your own data
+        storage_options={
+            # Public bucket → no signing. The bucket is in us-east-1; pin it so
+            # the read works from a space in any region. (For your own private
+            # data, drop both of these — your instance's credentials/region are
+            # used automatically.)
+            "skip_signature": "true",
+            "aws_region": "us-east-1",
+        },
         columns=["ID", "DATE", "DATA_VALUE"],
     ).with_columns(
         (pl.col("DATA_VALUE") / 10).alias("tmax_c"),

@@ -114,7 +114,13 @@ import polars as pl
 # No download, no credentials to wire up. DATA_VALUE is in tenths of °C.
 tmax = pl.read_parquet(
     "s3://noaa-ghcn-pds/parquet/by_year/YEAR=2023/ELEMENT=TMAX/*.parquet",
-    storage_options={"anon": "true"},  # public bucket; drop this for your own data
+    storage_options={
+        # Public bucket → no signing; it lives in us-east-1, so pin the region
+        # to read it from a space in any region. (For your own private data,
+        # drop both — your instance's credentials and region are used.)
+        "skip_signature": "true",
+        "aws_region": "us-east-1",
+    },
     columns=["ID", "DATE", "DATA_VALUE"],
 ).with_columns(
     (pl.col("DATA_VALUE") / 10).alias("tmax_c"),
