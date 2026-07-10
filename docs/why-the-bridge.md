@@ -54,11 +54,3 @@ the query, marimo's own URL works unchanged and the bridge becomes a
 transparent passthrough — nothing to remove. (There's also an SSE + HTTP-POST
 fallback for environments that block WebSockets entirely; it isn't used on
 SageMaker, where WebSockets work.)
-
-## The alternative: a custom image
-
-For a permanent, bridge-free setup you can bake marimo into a **custom SageMaker
-Studio JupyterLab image**, but that still doesn't fix the query strip — the
-bridge (or an AWS-side fix) is what makes the WebSocket connect. Attaching the
-bridge via a lifecycle configuration (see the README) is the lighter-weight
-path that works on the stock image today.
