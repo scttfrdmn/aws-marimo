@@ -28,11 +28,6 @@ open marimo in your browser. Click it.
 
 The notebook renders, cells are editable, and running a cell returns output.
 
-> The link uses the bridge port (2719), not marimo's port (2718) — only the
-> bridge port works through SageMaker. (If the script can't build the full link
-> — no AWS CLI or `sagemaker:DescribeSpace` permission — it prints the path to
-> paste after your JupyterLab host instead.)
-
 ## Open a specific notebook
 
 ```bash
