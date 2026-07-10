@@ -14,7 +14,7 @@ If you find a bug, please open an issue with:
 - Clear description of the problem
 - Steps to reproduce
 - Expected vs actual behavior
-- Environment details (SageMaker Studio / Unified Studio, marimo & ws-sse-proxy versions, Python version)
+- Environment details (SageMaker Studio JupyterLab, marimo version, Python version)
 
 ### Suggesting Enhancements
 
@@ -38,7 +38,7 @@ Open an issue describing:
 
 4. **Test your changes**
    - Test on SageMaker Studio (JupyterLab) if possible
-   - Ensure `start-marimo.sh` launches marimo + ws-sse-proxy
+   - Ensure `start-marimo.sh` launches marimo + the bridge
    - Verify demo notebooks run
 
 5. **Commit your changes**
@@ -82,30 +82,26 @@ uv run --with marimo marimo edit sagemaker_ml_demo.py
 
 ### Testing on SageMaker Studio
 
-1. Open a JupyterLab space in SageMaker Studio (or Unified Studio).
-2. Install: `pip install marimo ws-sse-proxy`.
-3. Run `bash start-marimo.sh` and open the proxy port `2719` — confirm cells execute.
+1. Open a JupyterLab space in SageMaker Studio.
+2. Run `bash start-marimo.sh` and open the bridge port `2719` — confirm cells execute.
 
 ## Project Structure
 
 ```
 aws-marimo-sagemaker/
-├── start-marimo.sh           # Launch marimo + ws-sse-proxy
-├── upgrade-marimo.sh         # Upgrade marimo + ws-sse-proxy
-├── uninstall.sh              # Remove the local setup
-├── diagnose-proxy.sh         # Troubleshoot proxy/access
+├── start-marimo.sh                 # Launch marimo + the bridge
+├── sagemaker_marimo_bridge.py      # The WebSocket bridge (single file)
 ├── lifecycle-config/
-│   └── install-marimo.sh     # Persistent install via JupyterLab LCC
-├── sagemaker_ml_demo.py      # ML workflow demo
-├── marimo-demo.py            # Simple reactive demo
-├── README.md                 # Main documentation
-├── QUICKSTART.md             # Quick start guide
-├── WEBSOCKET-STATUS.md       # Root cause + workaround
-├── blog-post.md              # Long-form write-up
-├── CHANGELOG.md              # Version history
-├── CONTRIBUTING.md           # This file
-├── LICENSE                   # MIT License
-└── VERSION                   # Semver version
+│   └── install.sh                  # Persistent install via JupyterLab LCC
+├── docs/
+│   └── why-the-bridge.md           # Root cause + how the bridge fixes it
+├── sagemaker_ml_demo.py            # ML workflow demo
+├── marimo-demo.py                  # Simple reactive demo
+├── README.md                       # Main documentation
+├── CHANGELOG.md                    # Version history
+├── CONTRIBUTING.md                 # This file
+├── LICENSE                         # MIT License
+└── VERSION                         # Semver version
 ```
 
 ## Documentation
@@ -113,8 +109,7 @@ aws-marimo-sagemaker/
 When adding features:
 - Update README.md with usage examples
 - Add entry to CHANGELOG.md under [Unreleased]
-- Update QUICKSTART.md if it affects setup
-- Consider adding to blog-post.md if it's significant
+- Update docs/why-the-bridge.md if it changes the transport behavior
 
 ## Versioning
 
@@ -150,7 +145,7 @@ Update VERSION file and CHANGELOG.md when releasing.
 Before submitting a PR:
 - [ ] Code runs without errors
 - [ ] Demo notebook works on SageMaker Studio (via `start-marimo.sh`)
-- [ ] `start-marimo.sh` launches marimo + ws-sse-proxy cleanly
+- [ ] `start-marimo.sh` launches marimo + the bridge cleanly
 - [ ] Documentation is updated
 - [ ] CHANGELOG.md is updated
 - [ ] Commit messages are clear
