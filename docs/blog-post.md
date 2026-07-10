@@ -19,6 +19,12 @@ Until recently the answer was "sort of." marimo would load in SageMaker
 Studio's JupyterLab, but notebooks got stuck **"connecting," with blank cells** —
 you could see the file, but you couldn't run anything. Not much use.
 
+<!-- IMAGE 4 (optional — the problem): screenshot of a marimo notebook in
+     SageMaker Studio stuck with a blank canvas / "connecting" state, no cells.
+     One of the pre-fix captures works. Sets up the problem before the fix. -->
+![A marimo notebook in SageMaker Studio before the fix: blank canvas, stuck connecting.](images/blank-notebook.png)
+*Before the fix: the notebook loads but never connects — blank, no cells.*
+
 That's fixed now, with a small bridge you start alongside marimo. This post
 shows how to get it running, and then builds a small but real example that only
 makes sense *because* it's on SageMaker — fitting a model over a public dataset
@@ -35,6 +41,19 @@ curl -fsSL https://raw.githubusercontent.com/scttfrdmn/aws-marimo-sagemaker/main
 It installs marimo if needed, starts it behind the bridge, and prints a
 clickable link. Click it, and you're in a working marimo notebook — cells
 render, edit, and execute.
+
+<!-- IMAGE 5 (optional — the "one command" moment): screenshot of the
+     JupyterLab terminal after running start-marimo.sh, showing the printed
+     clickable link. Small/supporting; the code block above may be enough. -->
+
+<!-- IMAGE 1 (ESSENTIAL — the hero shot): the explore.py notebook running live
+     in SageMaker Studio. Show the station dropdown + σ-slider up top, the chart
+     below (blue = actual highs, orange = seasonal fit, red dots = anomalies),
+     and the address bar with .../jupyterlab/default/proxy/2719/. This single
+     image proves the whole premise — place it prominently. -->
+![marimo running interactively in SageMaker Studio: controls on top, temperature chart with seasonal fit and flagged anomalies below.](images/marimo-on-sagemaker.png)
+*marimo, running interactively on SageMaker Studio — the finished `explore.py`
+from this post.*
 
 Prefer to read before you run? Clone the repo and run `bash start-marimo.sh`
 instead. Either way, to open a specific notebook:
@@ -56,6 +75,14 @@ correctly; it's specific to SageMaker's layer. There's a
 [short write-up](https://github.com/scttfrdmn/aws-marimo-sagemaker/blob/main/docs/why-the-bridge.md)
 if you want the details.) It prefers a normal WebSocket, so if AWS ever fixes
 the underlying behavior, the bridge quietly gets out of the way.
+
+<!-- IMAGE 3 (nice-to-have — architecture): a clean rendered version of the
+     four-box flow. Browser → SageMaker proxy (/proxy/2719/) → bridge (:2719)
+     → marimo (127.0.0.1:2718). Horizontal, ports labeled. Replaces needing an
+     ASCII diagram here. -->
+![Request flow: browser to SageMaker proxy to the bridge on port 2719 to marimo on localhost 2718.](images/architecture.png)
+*The bridge sits between SageMaker's proxy and marimo, restoring the dropped
+query on the way through.*
 
 ## An example that earns its place on SageMaker
 
@@ -185,6 +212,17 @@ that produced them — the notebook can't drift out of sync with itself.
 (For Central Park in 2023 you'll see a seasonal fit around R² = 0.77 and, at
 2.5σ, a handful of flagged days — the sharp warm and cold snaps that stand out
 against an otherwise smooth year.)
+
+<!-- IMAGE 2 (ESSENTIAL — reactivity): show one control change propagating,
+     with nothing re-run by hand. Best as a short GIF of dragging the σ-slider
+     (or switching station) and watching the fit, the anomaly count, and the
+     red dots update. If GIFs aren't supported, use a two-panel before/after
+     still — e.g. Central Park vs. Phoenix, or 2.5σ vs. 1.5σ — captioned to
+     point out that only one control moved. This image carries the "why marimo"
+     argument. -->
+![Two views of the explorer showing the chart, fit, and anomaly count updating after a single control change.](images/reactivity.gif)
+*Move one control — the model refits, the anomalies re-flag, the chart and the
+count update. Nothing re-run by hand.*
 
 Try to reproduce that experience elsewhere and you feel the friction:
 
