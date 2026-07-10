@@ -34,7 +34,12 @@ The notebook renders, cells are editable, and running a cell returns output.
 bash start-marimo.sh my_notebook.py
 ```
 
-The repo includes [`marimo-demo.py`](marimo-demo.py) to try.
+Two notebooks to try are included:
+
+- [`marimo-demo.py`](marimo-demo.py) — a minimal reactive demo (marimo only).
+- [`explore.py`](explore.py) — reads NOAA weather data from S3, fits a seasonal
+  model, and flags anomalous days live. Install its extras first:
+  `pip install polars pyarrow s3fs scikit-learn altair`.
 
 ## Make it persist across restarts
 
