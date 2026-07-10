@@ -7,10 +7,6 @@ SageMaker Studio.
 [![marimo](https://img.shields.io/badge/marimo-latest-green?logo=python)](https://marimo.io)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Out of the box, marimo notebooks on SageMaker Studio get stuck **"connecting"
-with blank cells**. This repo ships a small bridge that enables marimo to work
-on SageMaker. ([Why it's needed →](docs/why-the-bridge.md))
-
 ## Quick start
 
 In a SageMaker Studio **JupyterLab** space, open a terminal and run:
