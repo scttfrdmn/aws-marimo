@@ -46,20 +46,20 @@ render, edit, and execute.
      JupyterLab terminal after running start-marimo.sh, showing the printed
      clickable link. Small/supporting; the code block above may be enough. -->
 
-<!-- IMAGE 1 (ESSENTIAL — the hero shot): the explore.py notebook running live
+<!-- IMAGE 1 (ESSENTIAL — the hero shot): the notebook_weather.py notebook running live
      in SageMaker Studio. Show the station dropdown + σ-slider up top, the chart
      below (blue = actual highs, orange = seasonal fit, red dots = anomalies),
      and the address bar with .../jupyterlab/default/proxy/2719/. This single
      image proves the whole premise — place it prominently. -->
 ![marimo running interactively in SageMaker Studio: controls on top, temperature chart with seasonal fit and flagged anomalies below.](images/marimo-on-sagemaker.png)
-*marimo, running interactively on SageMaker Studio — the finished `explore.py`
+*marimo, running interactively on SageMaker Studio — the finished `notebook_weather.py`
 from this post.*
 
 Prefer to read before you run? Clone the repo and run `bash start-marimo.sh`
 instead. Either way, to open a specific notebook:
 
 ```bash
-bash start-marimo.sh explore.py
+bash start-marimo.sh notebook_weather.py
 ```
 
 ### Why the bridge, in one paragraph
@@ -251,7 +251,7 @@ see the data. That combination is the point.
 Because a marimo notebook is a plain Python file, everything downstream just
 works:
 
-- **It's reviewable.** `explore.py` is real code. It goes in the repo, it shows
+- **It's reviewable.** `notebook_weather.py` is real code. It goes in the repo, it shows
   up in a pull request as a readable diff, and a teammate can see exactly what
   changed — not a wall of JSON and base64 image blobs.
 - **It's reproducible.** A colleague opens the same file on their own SageMaker
@@ -262,7 +262,7 @@ works:
 - **It's shareable as an app.** The same file runs read-only with:
 
   ```bash
-  marimo run explore.py
+  marimo run notebook_weather.py
   ```
 
   Point the bridge at that instead, and a non-notebook colleague — a domain
@@ -298,7 +298,7 @@ The setup, the bridge, and a runnable demo notebook are here:
 
 *The example uses [polars](https://pola.rs), [scikit-learn](https://scikit-learn.org),
 and [Altair](https://altair-viz.github.io/); pandas and Matplotlib work just as
-well. The full notebook is [`explore.py`](https://github.com/scttfrdmn/aws-marimo-sagemaker/blob/main/explore.py)
+well. The full notebook is [`notebook_weather.py`](https://github.com/scttfrdmn/aws-marimo-sagemaker/blob/main/notebook_weather.py)
 in the repo. Swap the S3 path for your own bucket — or any of the public
 datasets on the [AWS Open Data Registry](https://registry.opendata.aws/) — and
 you're off.*

@@ -77,7 +77,7 @@ uv venv
 uv pip install marimo pandas numpy boto3 plotly scikit-learn
 
 # Run the demo
-uv run --with marimo marimo edit sagemaker_ml_demo.py
+uv run --with marimo marimo edit notebook_ml.py
 ```
 
 ### Testing on SageMaker Studio
@@ -95,8 +95,9 @@ aws-marimo-sagemaker/
 │   └── install.sh                  # Persistent install via JupyterLab LCC
 ├── docs/
 │   └── why-the-bridge.md           # Root cause + how the bridge fixes it
-├── sagemaker_ml_demo.py            # ML workflow demo
-├── marimo-demo.py                  # Simple reactive demo
+├── notebook_ml.py               # full ML workflow demo
+├── notebook_basics.py           # minimal reactive demo
+├── notebook_weather.py         # S3 + seasonal-model demo
 ├── README.md                       # Main documentation
 ├── CHANGELOG.md                    # Version history
 ├── CONTRIBUTING.md                 # This file

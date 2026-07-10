@@ -10,7 +10,7 @@ Data: NOAA GHCN-Daily on the AWS Open Data Registry
 
 Run it via the bridge (see the repo README):
     pip install polars pyarrow s3fs scikit-learn altair
-    bash start-marimo.sh explore.py
+    bash start-marimo.sh notebook_weather.py
 
 Note: the "display" cells below use hide_code=True so the controls, the summary,
 and the chart render on their own — the code is a click away via the ⋯ menu.

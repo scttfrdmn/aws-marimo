@@ -34,12 +34,16 @@ The notebook renders, cells are editable, and running a cell returns output.
 bash start-marimo.sh my_notebook.py
 ```
 
-Two notebooks to try are included:
+Three notebooks to try are included:
 
-- [`marimo-demo.py`](marimo-demo.py) — a minimal reactive demo (marimo only).
-- [`explore.py`](explore.py) — reads NOAA weather data from S3, fits a seasonal
-  model, and flags anomalous days live. Install its extras first:
-  `pip install polars pyarrow s3fs scikit-learn altair`.
+- [`notebook_basics.py`](notebook_basics.py) — a minimal reactive demo.
+  Extras: `pip install plotly`.
+- [`notebook_weather.py`](notebook_weather.py) — reads NOAA weather data from
+  S3, fits a seasonal model, and flags anomalous days live.
+  Extras: `pip install polars pyarrow s3fs scikit-learn altair`.
+- [`notebook_ml.py`](notebook_ml.py) — a full reactive ML workflow (filter →
+  train → evaluate) with a peek at the SageMaker API.
+  Extras: `pip install pandas numpy scikit-learn plotly boto3`.
 
 ## Make it persist across restarts
 

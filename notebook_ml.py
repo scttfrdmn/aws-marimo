@@ -1,24 +1,29 @@
 """
-marimo on SageMaker: Complete ML Workflow Demo
+marimo on SageMaker — a complete, reactive ML workflow.
 
-This notebook demonstrates:
-- Reactive data exploration with interactive widgets
-- AWS SageMaker integration
-- Real-time visualizations
-- Model training and evaluation
+Interactive data exploration, model training with live hyperparameters, and a
+peek at the SageMaker API — every cell updates on its own when you change a
+control.
 
-Run this notebook with: marimo edit sagemaker_ml_demo.py
-Or as a script: python sagemaker_ml_demo.py
-Or as an app: marimo run sagemaker_ml_demo.py
+Dependencies (beyond marimo):
+    pip install pandas numpy scikit-learn plotly boto3
+
+Run it via the bridge (see the repo README):
+    pip install pandas numpy scikit-learn plotly boto3
+    bash start-marimo.sh notebook_ml.py
+
+Note: cells whose *output* is the point (controls, tables, plots, prose) use
+hide_code=True so the interactive surface stands out; the training cell is left
+visible because it's the part worth reading. Code is a click away via the ⋯ menu.
 """
 
 import marimo
 
-__generated_with = "0.13.0"  # update to match your installed marimo if needed
+__generated_with = "0.23.13"
 app = marimo.App(width="full")
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _():
     import marimo as mo
     import pandas as pd
@@ -44,7 +49,7 @@ def _():
     )
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md("""
     # 🚀 marimo on Amazon SageMaker: Interactive ML Workflow
@@ -57,7 +62,7 @@ def _(mo):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(np, pd):
     # Generate synthetic dataset
     np.random.seed(42)
@@ -83,7 +88,7 @@ def _(np, pd):
     return (data,)
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(data, mo):
     # Interactive controls for data exploration
     mo.md("### 🎛️ Interactive Data Filters")
@@ -129,7 +134,7 @@ def _(data, mo):
     return age_range, feature_selector, income_threshold, score_threshold
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(age_range, data, income_threshold, mo, score_threshold):
     # Filter data based on interactive controls
     # This cell automatically re-executes when sliders change!
@@ -152,7 +157,7 @@ def _(age_range, data, income_threshold, mo, score_threshold):
     return (filtered_data,)
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(filtered_data, mo):
     # Interactive table - automatically updates with filtered data
     mo.ui.table(
@@ -164,7 +169,7 @@ def _(filtered_data, mo):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(filtered_data, go, mo, px):
     # Visualizations - automatically update when data changes
     mo.md("### 📊 Interactive Visualizations")
@@ -207,7 +212,7 @@ def _(filtered_data, go, mo, px):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md("""
     ## 🤖 Part 2: Model Training with Reactive Parameters
@@ -217,7 +222,7 @@ def _(mo):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     # Model hyperparameters
     n_estimators_slider = mo.ui.slider(
@@ -299,31 +304,32 @@ def _(
     return model, model_trained, predictions, test_score, train_score, y_test
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo, model_trained, test_score, train_score):
-    # Display model performance - automatically updates!
+    # Display model performance — automatically updates.
     if model_trained:
-        mo.callout(
+        performance = mo.callout(
             mo.md(f"""
-            ### 🎯 Model Performance
+            ### 🎯 Model performance
 
-            - **Training Accuracy**: {train_score:.3f}
-            - **Test Accuracy**: {test_score:.3f}
-            - **Overfitting**: {train_score - test_score:.3f}
+            - **Training accuracy**: {train_score:.3f}
+            - **Test accuracy**: {test_score:.3f}
+            - **Gap (train − test)**: {train_score - test_score:.3f}
 
-            {'✅ Good generalization!' if (train_score - test_score) < 0.1 else '⚠️ Model may be overfitting'}
+            {'✅ Good generalization!' if (train_score - test_score) < 0.1 else '⚠️ May be overfitting'}
             """),
-            kind="success" if test_score > 0.75 else "warn"
+            kind="success" if test_score > 0.75 else "warn",
         )
     else:
-        mo.callout(
-            mo.md("⚠️ Need at least 50 samples and 1 feature to train model"),
-            kind="warn"
+        performance = mo.callout(
+            mo.md("⚠️ Need at least 50 samples and 1 feature to train a model."),
+            kind="warn",
         )
+    performance
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(confusion_matrix, go, mo, model_trained, predictions, y_test):
     # Confusion matrix visualization
     if model_trained:
@@ -340,16 +346,19 @@ def _(confusion_matrix, go, mo, model_trained, predictions, y_test):
         ))
 
         fig_cm.update_layout(
-            title='Confusion Matrix (updates automatically!)',
-            xaxis_title='Predicted Label',
-            yaxis_title='True Label'
+            title='Confusion matrix (updates automatically)',
+            xaxis_title='Predicted label',
+            yaxis_title='True label'
         )
 
-        mo.ui.plotly(fig_cm)
+        cm_view = mo.ui.plotly(fig_cm)
+    else:
+        cm_view = None
+    cm_view
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(feature_selector, go, mo, model, model_trained):
     # Feature importance - automatically updates!
     if model_trained:
@@ -367,16 +376,19 @@ def _(feature_selector, go, mo, model, model_trained):
         ])
 
         fig_importance.update_layout(
-            title='Feature Importance (updates with model)',
+            title='Feature importance (updates with model)',
             xaxis_title='Feature',
             yaxis_title='Importance'
         )
 
-        mo.ui.plotly(fig_importance)
+        importance_view = mo.ui.plotly(fig_importance)
+    else:
+        importance_view = None
+    importance_view
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md("""
     ## ☁️ Part 3: AWS SageMaker Integration
@@ -386,7 +398,7 @@ def _(mo):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     # AWS Region selector
     region_selector = mo.ui.dropdown(
@@ -402,7 +414,7 @@ def _(mo):
     return (region_selector,)
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(boto3, region_selector):
     # Initialize AWS clients - automatically updates when region changes!
     try:
@@ -415,59 +427,51 @@ def _(boto3, region_selector):
     return aws_connected, sagemaker_client
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(aws_connected, mo, pd, sagemaker_client):
-    # List recent SageMaker training jobs
-    if aws_connected:
+    # List recent SageMaker training jobs — a real API call when creds are present.
+    if not aws_connected:
+        jobs_view = mo.callout(
+            mo.md("""
+            ⚠️ **AWS credentials required**
+
+            To reach SageMaker, this space needs credentials — normally the
+            space's IAM role provides them automatically.
+            """),
+            kind="info",
+        )
+    else:
         try:
             response = sagemaker_client.list_training_jobs(
-                MaxResults=10,
-                SortBy='CreationTime',
-                SortOrder='Descending'
+                MaxResults=10, SortBy='CreationTime', SortOrder='Descending'
             )
-
-            if response['TrainingJobSummaries']:
-                jobs_data = []
-                for job in response['TrainingJobSummaries']:
-                    jobs_data.append({
-                        'Job Name': job['TrainingJobName'],
+            summaries = response['TrainingJobSummaries']
+            if summaries:
+                jobs_df = pd.DataFrame([
+                    {
+                        'Job name': job['TrainingJobName'],
                         'Status': job['TrainingJobStatus'],
                         'Created': job['CreationTime'].strftime('%Y-%m-%d %H:%M'),
-                        'Training Time (s)': job.get('TrainingEndTime', job['CreationTime']) - job['CreationTime']
-                    })
-
-                jobs_df = pd.DataFrame(jobs_data)
-
-                mo.vstack([
-                    mo.md("### 📋 Recent SageMaker Training Jobs"),
-                    mo.ui.table(jobs_df, selection=None)
+                    }
+                    for job in summaries
+                ])
+                jobs_view = mo.vstack([
+                    mo.md("### 📋 Recent SageMaker training jobs"),
+                    mo.ui.table(jobs_df, selection=None),
                 ])
             else:
-                mo.callout(
-                    mo.md("No training jobs found in this region"),
-                    kind="info"
+                jobs_view = mo.callout(
+                    mo.md("No training jobs found in this region."), kind="info"
                 )
-        except Exception as e:
-            mo.callout(
-                mo.md(f"⚠️ Error fetching training jobs: {str(e)}"),
-                kind="warn"
+        except Exception as e:  # noqa: BLE001
+            jobs_view = mo.callout(
+                mo.md(f"⚠️ Couldn't fetch training jobs: {e}"), kind="warn"
             )
-    else:
-        mo.callout(
-            mo.md("""
-            ⚠️ **AWS Credentials Required**
-
-            To connect to SageMaker, ensure your environment has AWS credentials configured:
-            - IAM role (when running in SageMaker Studio)
-            - AWS CLI credentials (`aws configure`)
-            - Environment variables (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
-            """),
-            kind="info"
-        )
+    jobs_view
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md("""
     ## 🎓 Key Takeaways
@@ -483,9 +487,9 @@ def _(mo):
     ## 🚀 Next Steps
 
     - Save this notebook: It's just a Python file!
-    - Run as a script: `python sagemaker_ml_demo.py`
-    - Deploy as a web app: `marimo run sagemaker_ml_demo.py`
-    - Version control: `git add sagemaker_ml_demo.py && git commit -m "Add ML demo"`
+    - Run as a script: `python notebook_ml.py`
+    - Deploy as a web app: `marimo run notebook_ml.py`
+    - Version control: `git add notebook_ml.py && git commit -m "Add ML demo"`
 
     ---
 
