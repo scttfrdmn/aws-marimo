@@ -51,11 +51,13 @@ The repo includes [`marimo-demo.py`](marimo-demo.py) to try.
 
 ## Make it persist across restarts
 
-For regular use, a Studio **lifecycle configuration** installs everything once
-so it survives space restarts, instead of running the script each session —
-see [`lifecycle-config/`](lifecycle-config/). (For a fully baked-in setup you
-can build a custom Studio JupyterLab image; the bridge is still what makes the
-WebSocket connect. See [docs/why-the-bridge.md](docs/why-the-bridge.md).)
+Running the script each session works, but for regular use a Studio
+**lifecycle configuration** installs marimo and the bridge once, so they
+survive space restarts. See [`lifecycle-config/`](lifecycle-config/).
+
+A custom Studio JupyterLab image can bake them in too, but note the bridge is
+still required either way — it's what makes the WebSocket connect, not just
+what installs marimo.
 
 ## How it works
 
