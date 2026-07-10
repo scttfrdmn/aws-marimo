@@ -28,9 +28,8 @@ cd aws-marimo-sagemaker
 bash start-marimo.sh
 ```
 
-Either way it installs marimo (if needed), starts it behind the bridge, and
-prints a URL. **Open that URL** — it's your JupyterLab host with the path
-replaced by:
+Either way it installs marimo (if needed), starts it, and prints a URL.
+**Open that URL** — it's your JupyterLab host with the path replaced by:
 
 ```
 /jupyterlab/default/proxy/2719/
