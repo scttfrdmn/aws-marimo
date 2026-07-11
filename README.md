@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/images/hero.png" alt="aws-marimo-sagemaker — reactive notebooks, cloud power, built for SageMaker Studio" width="100%">
+</p>
+
 # marimo on Amazon SageMaker Studio
 
 Run [marimo](https://marimo.io) — the reactive Python notebook — on Amazon
